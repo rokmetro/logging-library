@@ -14,8 +14,10 @@ type Log struct {
 }
 ```
 
-- traceID- gets generated at the top level for each incoming request.
-- spanID- gets generated for each function call while servicing a request.
+- traceID- generated once for an incoming request.
+- spanID- generated for each new API call.
 - prevSpanID- spanID of the previous function
 - stackTrace- list of function calls made so far
 - context- map for other unstructured context data
+
+If client sends a request to service 1, a trace-id and span-id is generated for service 1. If it makes any calls to other microservices, a span-id gets generated for each subsequent service, but trace-id stays the same.
