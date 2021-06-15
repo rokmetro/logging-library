@@ -5,22 +5,57 @@ import (
 )
 
 type StandardLogger struct {
-	*logrus.Logger
+	*logrus.Entry
 }
 
-func NewLogger() *StandardLogger {
+type Log struct {
+	*StandardLogger
+	traceID    string
+	spanID     string
+	prevSpanID string
+	stackTrace []string
+	context    map[string]interface{} //Dynamic context data of a request
+}
+
+//Constructor for new logger object with configuration at the service level
+func NewLogger(serviceName string) *StandardLogger {
 	var baseLogger = logrus.New()
-	var standardLogger = &StandardLogger{baseLogger}
-	standardLogger.Formatter = &logrus.JSONFormatter{}
-	return standardLogger
+	baseLogger.Formatter = &logrus.JSONFormatter{}
+	standardFields := logrus.Fields{"serviceName": serviceName} //All common fields for logs of a given service
+	contextLogger := &StandardLogger{baseLogger.WithFields(standardFields)}
+	return contextLogger
 }
 
-// InvalidArgValue is a standard error message for invalid arguments
-func (l *StandardLogger) InvalidArg(argumentName string, argumentValue string) {
-	l.Errorf("Invalid value for argument", argumentName, argumentValue)
+//Constructor for a new log object of a request
+func NewLog(logger *StandardLogger, spanID string, traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
+	l := &Log{logger, traceID, spanID, prevSpanID, stackTrace, context}
+	return l
 }
 
-// MissingArg is a standard error message for missing arguments
-func (l *StandardLogger) MissingArg(argumentName string) {
-	l.Errorf("Missing argument", argumentName)
+//getRequestFields() populates a map with all the fields of a request
+func (l *Log) getRequestFields() logrus.Fields {
+	fields := logrus.Fields{"traceID": l.traceID, "spanID": l.spanID,
+		"prevSpanID": l.prevSpanID, "stackTrace": l.stackTrace, "context": l.context}
+	return fields
+}
+
+// InvalidArgValue is a standard error interface for invalid arguments
+func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
+	fields := l.getRequestFields()
+	fields["argument"] = argumentName
+	fields["value"] = argumentValue
+	l.WithFields(fields).Error("Invalid argument")
+}
+
+// MissingArg is a standard error interface for missing arguments
+func (l *Log) MissingArg(argumentName string) {
+	fields := l.getRequestFields()
+	fields["argument"] = argumentName
+	l.WithFields(fields).Error("Missing argument")
+}
+
+func (l *Log) ErrorWithFields(message string, internal string) {
+	fields := logrus.Fields{}
+
+	l.WithFields(fields).Error(message)
 }
