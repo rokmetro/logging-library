@@ -1,6 +1,8 @@
 # logwrapper
+
 Logging package for a standard logging interface across microservices.
 Includes context information such as request ids, span ids, stack trace and other unstructured context data.
+
 ```
 type Log struct {
 	*StandardLogger
@@ -8,9 +10,10 @@ type Log struct {
 	spanID     string
 	prevSpanID string
 	stackTrace []string
-	context    map[string]interface{} //Dynamic context data of a request
+	context    map[string]interface{}
 }
 ```
+
 - traceID- gets generated at the top level for each incoming request.
 - spanID- gets generated for each function call while servicing a request.
 - prevSpanID- spanID of the previous function
