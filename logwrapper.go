@@ -14,7 +14,7 @@ type Log struct {
 	spanID     string
 	prevSpanID string
 	stackTrace []string
-	context    map[string]interface{} //Dynamic context data of a request
+	context    map[string]interface{}
 }
 
 //Constructor for new logger object with configuration at the service level
@@ -53,6 +53,8 @@ func (l *Log) MissingArg(argumentName string) {
 	fields["argument"] = argumentName
 	l.WithFields(fields).Error("Missing argument")
 }
+
+//TODO: More error interfaces to be added
 
 func (l *Log) ErrorWithFields(message string, internal string) {
 	fields := logrus.Fields{}
