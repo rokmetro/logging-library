@@ -1,6 +1,7 @@
 package logwrapper
 
 import (
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,6 +29,11 @@ func NewLogger(serviceName string) *StandardLogger {
 
 //Constructor for a new log object of a request
 func NewLog(logger *StandardLogger, spanID string, traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
+	if traceID == "" {
+		traceID = uuid.New()
+	}
+	if spanID == "" {
+	}
 	l := &Log{logger, traceID, spanID, prevSpanID, stackTrace, context}
 	return l
 }
