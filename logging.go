@@ -1,6 +1,8 @@
-package logwrapper
+package logging
 
 import (
+	"runtime"
+
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
@@ -14,7 +16,6 @@ type Log struct {
 	traceID    string
 	spanID     string
 	prevSpanID string
-	stackTrace []string
 	context    map[string]interface{}
 }
 
@@ -28,20 +29,19 @@ func NewLogger(serviceName string) *StandardLogger {
 }
 
 //Constructor for a new log object of a request
-func NewLog(logger *StandardLogger, spanID string, traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
+func NewLog(logger *StandardLogger, traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
 	if traceID == "" {
-		traceID = uuid.New()
+		traceID = uuid.New().String()
 	}
-	if spanID == "" {
-	}
-	l := &Log{logger, traceID, spanID, prevSpanID, stackTrace, context}
+	spanID := uuid.New().String()
+	l := &Log{logger, traceID, spanID, prevSpanID, context}
 	return l
 }
 
 //getRequestFields() populates a map with all the fields of a request
 func (l *Log) getRequestFields() logrus.Fields {
-	fields := logrus.Fields{"traceID": l.traceID, "spanID": l.spanID,
-		"prevSpanID": l.prevSpanID, "stackTrace": l.stackTrace, "context": l.context}
+	fields := logrus.Fields{"trace_id": l.traceID, "span_id": l.spanID,
+		"prev_span_id": l.prevSpanID, "function_name": getPrevFuncName(), "context": l.context}
 	return fields
 }
 
@@ -64,6 +64,32 @@ func (l *Log) MissingArg(argumentName string) {
 
 func (l *Log) ErrorWithFields(message string, internal string) {
 	fields := logrus.Fields{}
-
 	l.WithFields(fields).Error(message)
+}
+
+//AddContext adds any relevant unstructured data to context map
+func (l *Log) AddContext(fieldName string, value interface{}) {
+	l.context[fieldName] = value
+}
+
+//PrintContext prints the entire context of a log object
+func (l *Log) PrintContext() {
+	fields := l.getRequestFields()
+	l.WithFields(fields).Info("Request Successful")
+}
+
+func getCurrFuncName() string {
+	return GetFuncName(4)
+}
+
+func getPrevFuncName() string {
+	return GetFuncName(5)
+}
+
+func GetFuncName(numFrames int) string {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(numFrames, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+	return frame.Function
 }
