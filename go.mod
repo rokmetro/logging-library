@@ -1,4 +1,4 @@
-module rokmetro.com/logging-lib
+module github.com/rokmetro/logging-library
 
 go 1.15
 
