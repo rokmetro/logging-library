@@ -1,4 +1,4 @@
-module logging
+module logging-library
 
 go 1.15
 
