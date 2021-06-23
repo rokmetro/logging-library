@@ -7,19 +7,47 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//StandardLogger struct defines a wrapper for a logger object
 type StandardLogger struct {
-	*logrus.Entry
+	entry *logrus.Entry
 }
 
+//Fatal prints the log with a fatal error message and stops the service instance.
+//WARNING: Please only use for critical error messages that should prevent the service from running
+func (l *StandardLogger) Fatal(message string) {
+	l.entry.Fatal(message)
+}
+
+//Error prints the log at error level with given message
+func (l *StandardLogger) Error(message string) {
+	l.entry.Error(message)
+}
+
+//ErrorWithFields prints the log at error level with given fields and message
+func (l *StandardLogger) ErrorWithFields(message string, fields logrus.Fields) {
+	l.entry.WithFields(fields).Error(message)
+}
+
+//Info prints the log at info level with given message
+func (l *StandardLogger) Info(message string) {
+	l.entry.Info(message)
+}
+
+//InfoWithFields prints the log at info level with given fields and message
+func (l *StandardLogger) InfoWithFields(message string, fields logrus.Fields) {
+	l.entry.WithFields(fields).Info(message)
+}
+
+//Log struct defines a log object of a request
 type Log struct {
-	*StandardLogger
+	logger     *StandardLogger
 	traceID    string
 	spanID     string
 	prevSpanID string
 	context    map[string]interface{}
 }
 
-//Constructor for new logger object with configuration at the service level
+//NewLogger is constructor for a logger object with initial configuration at the service level
 func NewLogger(serviceName string) *StandardLogger {
 	var baseLogger = logrus.New()
 	baseLogger.Formatter = &logrus.JSONFormatter{}
@@ -28,14 +56,14 @@ func NewLogger(serviceName string) *StandardLogger {
 	return contextLogger
 }
 
-//Constructor for a new log object of a request
-func NewLog(logger *StandardLogger, traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
+//NewLog is a constructor for a log object for a request
+func (l *StandardLogger) NewLog(traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
 	if traceID == "" {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	l := &Log{logger, traceID, spanID, prevSpanID, context}
-	return l
+	log := &Log{l, traceID, spanID, prevSpanID, context}
+	return log
 }
 
 //getRequestFields() populates a map with all the fields of a request
@@ -45,27 +73,29 @@ func (l *Log) getRequestFields() logrus.Fields {
 	return fields
 }
 
-// InvalidArgValue is a standard error interface for invalid arguments
+//InvalidArg is a standard error interface for invalid arguments
 func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
 	fields := l.getRequestFields()
 	fields["argument"] = argumentName
 	fields["value"] = argumentValue
-	l.WithFields(fields).Error("Invalid argument")
+	l.logger.ErrorWithFields("Invalid argument", fields)
 }
 
 // MissingArg is a standard error interface for missing arguments
 func (l *Log) MissingArg(argumentName string) {
 	fields := l.getRequestFields()
 	fields["argument"] = argumentName
-	l.WithFields(fields).Error("Missing argument")
+	l.logger.ErrorWithFields("Missing argument", fields)
+}
+
+//ErrorWithDetails is a standard error interface with custom message and details
+func (l *Log) ErrorWithDetails(message string, details map[string]interface{}) {
+	requestFields := l.getRequestFields()
+	requestFields["details"] = details
+	l.logger.ErrorWithFields(message, requestFields)
 }
 
 //TODO: More error interfaces to be added
-
-func (l *Log) ErrorWithFields(message string, internal string) {
-	fields := logrus.Fields{}
-	l.WithFields(fields).Error(message)
-}
 
 //AddContext adds any relevant unstructured data to context map
 func (l *Log) AddContext(fieldName string, value interface{}) {
@@ -75,17 +105,20 @@ func (l *Log) AddContext(fieldName string, value interface{}) {
 //PrintContext prints the entire context of a log object
 func (l *Log) PrintContext() {
 	fields := l.getRequestFields()
-	l.WithFields(fields).Info("Request Successful")
+	l.logger.InfoWithFields("Request Successful", fields)
 }
 
+//getCurrFuncName- fetches the current function name
 func getCurrFuncName() string {
 	return GetFuncName(4)
 }
 
+//getPrevFuncName- fetches the previous function name
 func getPrevFuncName() string {
 	return GetFuncName(5)
 }
 
+//GetFuncName fetches the name of a function caller based on the numFrames
 func GetFuncName(numFrames int) string {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(numFrames, pc)
