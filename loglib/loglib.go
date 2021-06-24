@@ -75,7 +75,7 @@ func (l *StandardLogger) NewRequestLog(r *http.Request) *Log {
 	}
 	prevSpanID := r.Header.Get("span-id")
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, nil}
+	log := &Log{l, traceID, spanID, prevSpanID, map[string]interface{}{}}
 	return log
 }
 
@@ -84,6 +84,11 @@ func (l *Log) getRequestFields() logrus.Fields {
 	fields := logrus.Fields{"trace_id": l.traceID, "span_id": l.spanID,
 		"prev_span_id": l.prevSpanID, "function_name": getPrevFuncName()}
 	return fields
+}
+
+func (l *Log) SetHeaders(r *http.Request) {
+	r.Header.Set("trace-id", l.traceID)
+	r.Header.Set("span-id", l.spanID)
 }
 
 //InvalidArg is a standard error interface for invalid arguments
