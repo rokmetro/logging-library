@@ -1,6 +1,7 @@
 package loglib
 
 import (
+	"net/http"
 	"runtime"
 
 	"github.com/google/uuid"
@@ -24,7 +25,7 @@ func (l *StandardLogger) Error(message string) {
 }
 
 //ErrorWithFields prints the log at error level with given fields and message
-func (l *StandardLogger) ErrorWithFields(message string, fields logrus.Fields) {
+func (l *StandardLogger) ErrorWithFields(message string, fields map[string]interface{}) {
 	l.entry.WithFields(fields).Error(message)
 }
 
@@ -34,7 +35,7 @@ func (l *StandardLogger) Info(message string) {
 }
 
 //InfoWithFields prints the log at info level with given fields and message
-func (l *StandardLogger) InfoWithFields(message string, fields logrus.Fields) {
+func (l *StandardLogger) InfoWithFields(message string, fields map[string]interface{}) {
 	l.entry.WithFields(fields).Info(message)
 }
 
@@ -57,19 +58,31 @@ func NewLogger(serviceName string) *StandardLogger {
 }
 
 //NewLog is a constructor for a log object for a request
-func (l *StandardLogger) NewLog(traceID string, prevSpanID string, stackTrace []string, context map[string]interface{}) *Log {
+func (l *StandardLogger) NewLog(traceID string, prevSpanID string) *Log {
 	if traceID == "" {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, context}
+	log := &Log{l, traceID, spanID, prevSpanID, nil}
+	return log
+}
+
+//NewRequestLog is a constructor for a log object for a request
+func (l *StandardLogger) NewRequestLog(r *http.Request) *Log {
+	traceID := r.Header.Get("trace-id")
+	if traceID == "" {
+		traceID = uuid.New().String()
+	}
+	prevSpanID := r.Header.Get("span-id")
+	spanID := uuid.New().String()
+	log := &Log{l, traceID, spanID, prevSpanID, nil}
 	return log
 }
 
 //getRequestFields() populates a map with all the fields of a request
 func (l *Log) getRequestFields() logrus.Fields {
 	fields := logrus.Fields{"trace_id": l.traceID, "span_id": l.spanID,
-		"prev_span_id": l.prevSpanID, "function_name": getPrevFuncName(), "context": l.context}
+		"prev_span_id": l.prevSpanID, "function_name": getPrevFuncName()}
 	return fields
 }
 
