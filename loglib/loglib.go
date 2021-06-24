@@ -118,6 +118,7 @@ func (l *Log) AddContext(fieldName string, value interface{}) {
 //PrintContext prints the entire context of a log object
 func (l *Log) PrintContext() {
 	fields := l.getRequestFields()
+	fields["context"] = l.context
 	l.logger.InfoWithFields("Request Successful", fields)
 }
 
