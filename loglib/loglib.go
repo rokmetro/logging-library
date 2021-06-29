@@ -29,6 +29,11 @@ func (l *StandardLogger) ErrorWithFields(message string, fields map[string]inter
 	l.entry.WithFields(fields).Error(message)
 }
 
+//Errorf prints the log at error level with given formatted string
+func (l *StandardLogger) Errorf(format string, args ...interface{}) {
+	l.entry.Errorf(format, args)
+}
+
 //Info prints the log at info level with given message
 func (l *StandardLogger) Info(message string) {
 	l.entry.Info(message)
@@ -37,6 +42,11 @@ func (l *StandardLogger) Info(message string) {
 //InfoWithFields prints the log at info level with given fields and message
 func (l *StandardLogger) InfoWithFields(message string, fields map[string]interface{}) {
 	l.entry.WithFields(fields).Info(message)
+}
+
+//Infof prints the log at info level with given formatted string
+func (l *StandardLogger) Infof(format string, args ...interface{}) {
+	l.entry.Infof(format, args)
 }
 
 //Debug prints the log at debug level with given message
@@ -49,24 +59,24 @@ func (l *StandardLogger) DebugWithFields(message string, fields map[string]inter
 	l.entry.WithFields(fields).Debug(message)
 }
 
-//Warn prints the log at debug level with given message
+//Debugf prints the log at debug level with given formatted string
+func (l *StandardLogger) Debugf(format string, args ...interface{}) {
+	l.entry.Debugf(format, args)
+}
+
+//Warn prints the log at warn level with given message
 func (l *StandardLogger) Warn(message string) {
 	l.entry.Warn(message)
 }
 
-//WarnWithFields prints the log at debug level with given fields and message
+//WarnWithFields prints the log at warn level with given fields and message
 func (l *StandardLogger) WarnWithFields(message string, fields map[string]interface{}) {
 	l.entry.WithFields(fields).Warn(message)
 }
 
-//Println prints the log at info level with given message
-func (l *StandardLogger) Println(message string) {
-	l.entry.Println(message)
-}
-
-//Printf prints the log at info level with given message
-func (l *StandardLogger) Printf(format string, args ...interface{}) {
-	l.entry.Printf(format, args)
+//Warnf prints the log at warn level with given formatted string
+func (l *StandardLogger) Warnf(format string, args ...interface{}) {
+	l.entry.Warnf(format, args)
 }
 
 //Log struct defines a log object of a request
@@ -143,14 +153,9 @@ func (l *Log) ErrorWithDetails(message string, details map[string]interface{}) {
 	l.logger.ErrorWithFields(message, requestFields)
 }
 
-//Println prints the log at info level with given message
-func (l *Log) Println(message string) {
-	l.logger.Println(message)
-}
-
-//Printf prints the log at info level with given message
-func (l *Log) Printf(format string, args ...interface{}) {
-	l.logger.Printf(format, args)
+//Errorf prints the log at error level with given formatted string
+func (l *Log) Errorf(format string, args ...interface{}) {
+	l.logger.Errorf(format, args)
 }
 
 //Info prints the log at info level with given message
@@ -163,6 +168,11 @@ func (l *Log) InfoWithFields(message string, fields map[string]interface{}) {
 	l.logger.InfoWithFields(message, fields)
 }
 
+//Infof prints the log at info level with given formatted string
+func (l *Log) Infof(format string, args ...interface{}) {
+	l.logger.Infof(format, args)
+}
+
 //Debug prints the log at debug level with given message
 func (l *Log) Debug(message string) {
 	l.logger.Debug(message)
@@ -173,6 +183,11 @@ func (l *Log) DebugWithFields(message string, fields map[string]interface{}) {
 	l.logger.DebugWithFields(message, fields)
 }
 
+//Debugf prints the log at debug level with given formatted string
+func (l *Log) Debugf(format string, args ...interface{}) {
+	l.logger.Debugf(format, args)
+}
+
 //Warn prints the log at debug level with given message
 func (l *Log) Warn(message string) {
 	l.logger.Warn(message)
@@ -181,6 +196,11 @@ func (l *Log) Warn(message string) {
 //WarnWithFields prints the log at debug level with given fields and message
 func (l *Log) WarnWithFields(message string, fields map[string]interface{}) {
 	l.logger.WarnWithFields(message, fields)
+}
+
+//Warnf prints the log at warn level with given formatted string
+func (l *Log) Warnf(format string, args ...interface{}) {
+	l.logger.Warnf(format, args)
 }
 
 //TODO: More error interfaces to be added
