@@ -39,6 +39,36 @@ func (l *StandardLogger) InfoWithFields(message string, fields map[string]interf
 	l.entry.WithFields(fields).Info(message)
 }
 
+//Debug prints the log at debug level with given message
+func (l *StandardLogger) Debug(message string) {
+	l.entry.Debug(message)
+}
+
+//DebugWithFields prints the log at debug level with given fields and message
+func (l *StandardLogger) DebugWithFields(message string, fields map[string]interface{}) {
+	l.entry.WithFields(fields).Debug(message)
+}
+
+//Warn prints the log at debug level with given message
+func (l *StandardLogger) Warn(message string) {
+	l.entry.Warn(message)
+}
+
+//WarnWithFields prints the log at debug level with given fields and message
+func (l *StandardLogger) WarnWithFields(message string, fields map[string]interface{}) {
+	l.entry.WithFields(fields).Warn(message)
+}
+
+//Println prints the log at info level with given message
+func (l *StandardLogger) Println(message string) {
+	l.entry.Println(message)
+}
+
+//Printf prints the log at info level with given message
+func (l *StandardLogger) Printf(format string, args ...interface{}) {
+	l.entry.Printf(format, args)
+}
+
 //Log struct defines a log object of a request
 type Log struct {
 	logger     *StandardLogger
@@ -63,7 +93,7 @@ func (l *StandardLogger) NewLog(traceID string, prevSpanID string) *Log {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, nil}
+	log := &Log{l, traceID, spanID, prevSpanID, map[string]interface{}{}}
 	return log
 }
 
@@ -111,6 +141,46 @@ func (l *Log) ErrorWithDetails(message string, details map[string]interface{}) {
 	requestFields := l.getRequestFields()
 	requestFields["details"] = details
 	l.logger.ErrorWithFields(message, requestFields)
+}
+
+//Println prints the log at info level with given message
+func (l *Log) Println(message string) {
+	l.logger.Println(message)
+}
+
+//Printf prints the log at info level with given message
+func (l *Log) Printf(format string, args ...interface{}) {
+	l.logger.Printf(format, args)
+}
+
+//Info prints the log at info level with given message
+func (l *Log) Info(message string) {
+	l.logger.Info(message)
+}
+
+//InfoWithFields prints the log at info level with given fields and message
+func (l *Log) InfoWithFields(message string, fields map[string]interface{}) {
+	l.logger.InfoWithFields(message, fields)
+}
+
+//Debug prints the log at debug level with given message
+func (l *Log) Debug(message string) {
+	l.logger.Debug(message)
+}
+
+//DebugWithFields prints the log at debug level with given fields and message
+func (l *Log) DebugWithFields(message string, fields map[string]interface{}) {
+	l.logger.DebugWithFields(message, fields)
+}
+
+//Warn prints the log at debug level with given message
+func (l *Log) Warn(message string) {
+	l.logger.Warn(message)
+}
+
+//WarnWithFields prints the log at debug level with given fields and message
+func (l *Log) WarnWithFields(message string, fields map[string]interface{}) {
+	l.logger.WarnWithFields(message, fields)
 }
 
 //TODO: More error interfaces to be added
