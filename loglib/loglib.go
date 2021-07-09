@@ -8,15 +8,27 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type Fields map[string]interface{}
+
+func (f Fields) ToMap() map[string]interface{} {
+	return f
+}
+
 //StandardLogger struct defines a wrapper for a logger object
 type StandardLogger struct {
 	entry *logrus.Entry
 }
 
-//Fatal prints the log with a fatal error message and stops the service instance.
+//Fatal prints the log with a fatal error message and stops the service instance
 //WARNING: Please only use for critical error messages that should prevent the service from running
 func (l *StandardLogger) Fatal(message string) {
 	l.entry.Fatal(message)
+}
+
+//Fatalf prints the log with a fatal format error message and stops the service instance
+//WARNING: Please only use for critical error messages that should prevent the service from running
+func (l *StandardLogger) Fatalf(message string, args ...interface{}) {
+	l.entry.Fatalf(message, args)
 }
 
 //Error prints the log at error level with given message
@@ -25,8 +37,8 @@ func (l *StandardLogger) Error(message string) {
 }
 
 //ErrorWithFields prints the log at error level with given fields and message
-func (l *StandardLogger) ErrorWithFields(message string, fields map[string]interface{}) {
-	l.entry.WithFields(fields).Error(message)
+func (l *StandardLogger) ErrorWithFields(message string, fields Fields) {
+	l.entry.WithFields(fields.ToMap()).Error(message)
 }
 
 //Errorf prints the log at error level with given formatted string
@@ -40,8 +52,8 @@ func (l *StandardLogger) Info(message string) {
 }
 
 //InfoWithFields prints the log at info level with given fields and message
-func (l *StandardLogger) InfoWithFields(message string, fields map[string]interface{}) {
-	l.entry.WithFields(fields).Info(message)
+func (l *StandardLogger) InfoWithFields(message string, fields Fields) {
+	l.entry.WithFields(fields.ToMap()).Info(message)
 }
 
 //Infof prints the log at info level with given formatted string
@@ -55,8 +67,8 @@ func (l *StandardLogger) Debug(message string) {
 }
 
 //DebugWithFields prints the log at debug level with given fields and message
-func (l *StandardLogger) DebugWithFields(message string, fields map[string]interface{}) {
-	l.entry.WithFields(fields).Debug(message)
+func (l *StandardLogger) DebugWithFields(message string, fields Fields) {
+	l.entry.WithFields(fields.ToMap()).Debug(message)
 }
 
 //Debugf prints the log at debug level with given formatted string
@@ -70,8 +82,8 @@ func (l *StandardLogger) Warn(message string) {
 }
 
 //WarnWithFields prints the log at warn level with given fields and message
-func (l *StandardLogger) WarnWithFields(message string, fields map[string]interface{}) {
-	l.entry.WithFields(fields).Warn(message)
+func (l *StandardLogger) WarnWithFields(message string, fields Fields) {
+	l.entry.WithFields(fields.ToMap()).Warn(message)
 }
 
 //Warnf prints the log at warn level with given formatted string
@@ -85,7 +97,7 @@ type Log struct {
 	traceID    string
 	spanID     string
 	prevSpanID string
-	context    map[string]interface{}
+	context    Fields
 }
 
 //NewLogger is constructor for a logger object with initial configuration at the service level
@@ -103,7 +115,7 @@ func (l *StandardLogger) NewLog(traceID string, prevSpanID string) *Log {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, map[string]interface{}{}}
+	log := &Log{l, traceID, spanID, prevSpanID, Fields{}}
 	return log
 }
 
@@ -115,13 +127,13 @@ func (l *StandardLogger) NewRequestLog(r *http.Request) *Log {
 	}
 	prevSpanID := r.Header.Get("span-id")
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, map[string]interface{}{}}
+	log := &Log{l, traceID, spanID, prevSpanID, Fields{}}
 	return log
 }
 
 //getRequestFields() populates a map with all the fields of a request
-func (l *Log) getRequestFields() logrus.Fields {
-	fields := logrus.Fields{"trace_id": l.traceID, "span_id": l.spanID,
+func (l *Log) getRequestFields() Fields {
+	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID,
 		"prev_span_id": l.prevSpanID, "function_name": getPrevFuncName()}
 	return fields
 }
@@ -136,18 +148,18 @@ func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
 	fields := l.getRequestFields()
 	fields["argument"] = argumentName
 	fields["value"] = argumentValue
-	l.logger.ErrorWithFields("Invalid argument", fields)
+	l.logger.ErrorWithFields("Invalid argument", fields.ToMap())
 }
 
 // MissingArg is a standard error interface for missing arguments
 func (l *Log) MissingArg(argumentName string) {
 	fields := l.getRequestFields()
 	fields["argument"] = argumentName
-	l.logger.ErrorWithFields("Missing argument", fields)
+	l.logger.ErrorWithFields("Missing argument", fields.ToMap())
 }
 
 //ErrorWithDetails is a standard error interface with custom message and details
-func (l *Log) ErrorWithDetails(message string, details map[string]interface{}) {
+func (l *Log) ErrorWithDetails(message string, details Fields) {
 	requestFields := l.getRequestFields()
 	requestFields["details"] = details
 	l.logger.ErrorWithFields(message, requestFields)
@@ -164,7 +176,7 @@ func (l *Log) Info(message string) {
 }
 
 //InfoWithFields prints the log at info level with given fields and message
-func (l *Log) InfoWithFields(message string, fields map[string]interface{}) {
+func (l *Log) InfoWithFields(message string, fields Fields) {
 	l.logger.InfoWithFields(message, fields)
 }
 
@@ -179,7 +191,7 @@ func (l *Log) Debug(message string) {
 }
 
 //DebugWithFields prints the log at debug level with given fields and message
-func (l *Log) DebugWithFields(message string, fields map[string]interface{}) {
+func (l *Log) DebugWithFields(message string, fields Fields) {
 	l.logger.DebugWithFields(message, fields)
 }
 
@@ -194,7 +206,7 @@ func (l *Log) Warn(message string) {
 }
 
 //WarnWithFields prints the log at debug level with given fields and message
-func (l *Log) WarnWithFields(message string, fields map[string]interface{}) {
+func (l *Log) WarnWithFields(message string, fields Fields) {
 	l.logger.WarnWithFields(message, fields)
 }
 

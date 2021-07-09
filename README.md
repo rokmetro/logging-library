@@ -9,7 +9,7 @@ type Log struct {
 	traceID    string
 	spanID     string
 	prevSpanID string
-	context    map[string]interface{}
+	context    Fields
 }
 ```
 
