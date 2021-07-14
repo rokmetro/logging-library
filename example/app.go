@@ -8,14 +8,23 @@ import (
 
 func main() {
 	//Instantiate a logger for each service
-	var logger = log.NewLogger("health-service")
+	var logger = log.NewLogger("health-service", nil)
 
 	var random = 1234
 	logger.Infof("%d", random)
 	logger.InfoWithFields("ENV_VAR", log.Fields{"name": "test", "val": 123})
 
 	//Instantiate a new log object for every request
-	var logObj = logger.NewLog("12345", "8392")
+	request := log.RequestContext{
+		Method:     "GET",
+		Path:       "/example",
+		Headers:    map[string][]string{"Authorization": {"example_token"}, "Test": {"test"}},
+		PrevSpanID: "4234",
+	}
+
+	logObj := logger.NewLog("12345", request)
+	logObj.RequestReceived()
+
 	logObj.MissingArg("clientID")
 
 	var userData log.Fields
@@ -31,6 +40,5 @@ func main() {
 	logObj.Info("Log object is working")
 
 	// logObj.InvalidArg("tokenID", 4567)
-	logObj.PrintContext()
-
+	logObj.RequestComplete()
 }

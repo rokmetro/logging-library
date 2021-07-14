@@ -1,6 +1,8 @@
 package loglib
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"runtime"
 
@@ -14,125 +16,183 @@ func (f Fields) ToMap() map[string]interface{} {
 	return f
 }
 
-//StandardLogger struct defines a wrapper for a logger object
-type StandardLogger struct {
-	entry *logrus.Entry
+//Logger struct defines a wrapper for a logger object
+type Logger struct {
+	entry            *logrus.Entry
+	sensitiveHeaders []string
 }
 
-func (l *StandardLogger) withFields(fields Fields) *StandardLogger {
-	return &StandardLogger{entry: l.entry.WithFields(fields.ToMap())}
+//LoggerOpts provides configuration options for the Logger type
+type LoggerOpts struct {
+	//JsonFmt When true, logs will be output in JSON format. Otherwise logs will be in logfmt
+	JsonFmt bool
+	//SensitiveHeaders: A list of any headers that contain sensitive information and should not be logged
+	//				    Defaults: Authorization, Csrf
+	SensitiveHeaders []string
+}
+
+//NewLogger is constructor for a logger object with initial configuration at the service level
+// Params:
+//		serviceName: A meaningful service name to be associated with all logs
+//		opts: Configuration options for the Logger
+func NewLogger(serviceName string, opts *LoggerOpts) *Logger {
+	var baseLogger = logrus.New()
+	sensitiveHeaders := []string{"Authorization", "Csrf"}
+
+	if opts != nil {
+		if opts.JsonFmt {
+			baseLogger.Formatter = &logrus.JSONFormatter{}
+		} else {
+			baseLogger.Formatter = &logrus.TextFormatter{}
+		}
+
+		sensitiveHeaders = append(sensitiveHeaders, opts.SensitiveHeaders...)
+	}
+
+	standardFields := logrus.Fields{"service_name": serviceName} //All common fields for logs of a given service
+	contextLogger := &Logger{entry: baseLogger.WithFields(standardFields), sensitiveHeaders: sensitiveHeaders}
+	return contextLogger
+}
+
+func (l *Logger) withFields(fields Fields) *Logger {
+	return &Logger{entry: l.entry.WithFields(fields.ToMap())}
 }
 
 //Fatal prints the log with a fatal error message and stops the service instance
 //WARNING: Please only use for critical error messages that should prevent the service from running
-func (l *StandardLogger) Fatal(message string) {
+func (l *Logger) Fatal(message string) {
 	l.entry.Fatal(message)
 }
 
 //Fatalf prints the log with a fatal format error message and stops the service instance
 //WARNING: Please only use for critical error messages that should prevent the service from running
-func (l *StandardLogger) Fatalf(message string, args ...interface{}) {
+func (l *Logger) Fatalf(message string, args ...interface{}) {
 	l.entry.Fatalf(message, args)
 }
 
 //Error prints the log at error level with given message
-func (l *StandardLogger) Error(message string) {
+func (l *Logger) Error(message string) {
 	l.entry.Error(message)
 }
 
 //ErrorWithFields prints the log at error level with given fields and message
-func (l *StandardLogger) ErrorWithFields(message string, fields Fields) {
+func (l *Logger) ErrorWithFields(message string, fields Fields) {
 	l.entry.WithFields(fields.ToMap()).Error(message)
 }
 
 //Errorf prints the log at error level with given formatted string
-func (l *StandardLogger) Errorf(format string, args ...interface{}) {
+func (l *Logger) Errorf(format string, args ...interface{}) {
 	l.entry.Errorf(format, args)
 }
 
 //Info prints the log at info level with given message
-func (l *StandardLogger) Info(message string) {
+func (l *Logger) Info(message string) {
 	l.entry.Info(message)
 }
 
 //InfoWithFields prints the log at info level with given fields and message
-func (l *StandardLogger) InfoWithFields(message string, fields Fields) {
+func (l *Logger) InfoWithFields(message string, fields Fields) {
 	l.entry.WithFields(fields.ToMap()).Info(message)
 }
 
 //Infof prints the log at info level with given formatted string
-func (l *StandardLogger) Infof(format string, args ...interface{}) {
+func (l *Logger) Infof(format string, args ...interface{}) {
 	l.entry.Infof(format, args)
 }
 
 //Debug prints the log at debug level with given message
-func (l *StandardLogger) Debug(message string) {
+func (l *Logger) Debug(message string) {
 	l.entry.Debug(message)
 }
 
 //DebugWithFields prints the log at debug level with given fields and message
-func (l *StandardLogger) DebugWithFields(message string, fields Fields) {
+func (l *Logger) DebugWithFields(message string, fields Fields) {
 	l.entry.WithFields(fields.ToMap()).Debug(message)
 }
 
 //Debugf prints the log at debug level with given formatted string
-func (l *StandardLogger) Debugf(format string, args ...interface{}) {
+func (l *Logger) Debugf(format string, args ...interface{}) {
 	l.entry.Debugf(format, args)
 }
 
 //Warn prints the log at warn level with given message
-func (l *StandardLogger) Warn(message string) {
+func (l *Logger) Warn(message string) {
 	l.entry.Warn(message)
 }
 
 //WarnWithFields prints the log at warn level with given fields and message
-func (l *StandardLogger) WarnWithFields(message string, fields Fields) {
+func (l *Logger) WarnWithFields(message string, fields Fields) {
 	l.entry.WithFields(fields.ToMap()).Warn(message)
 }
 
 //Warnf prints the log at warn level with given formatted string
-func (l *StandardLogger) Warnf(format string, args ...interface{}) {
+func (l *Logger) Warnf(format string, args ...interface{}) {
 	l.entry.Warnf(format, args)
+}
+
+type RequestContext struct {
+	Method     string
+	Path       string
+	Headers    map[string][]string
+	PrevSpanID string
+}
+
+func (r RequestContext) String() string {
+	return fmt.Sprintf("%s %s prev_span_id: %s headers: %v", r.Method, r.Path, r.PrevSpanID, r.Headers)
 }
 
 //Log struct defines a log object of a request
 type Log struct {
-	logger     *StandardLogger
-	traceID    string
-	spanID     string
-	prevSpanID string
-	context    Fields
+	logger  *Logger
+	traceID string
+	spanID  string
+	request RequestContext
+	context Fields
 }
 
-//NewLogger is constructor for a logger object with initial configuration at the service level
-func NewLogger(serviceName string) *StandardLogger {
-	var baseLogger = logrus.New()
-	baseLogger.Formatter = &logrus.JSONFormatter{}
-	standardFields := logrus.Fields{"serviceName": serviceName} //All common fields for logs of a given service
-	contextLogger := &StandardLogger{baseLogger.WithFields(standardFields)}
-	return contextLogger
-}
-
-//NewLog is a constructor for a log object for a request
-func (l *StandardLogger) NewLog(traceID string, prevSpanID string) *Log {
+//NewLog is a constructor for a log object
+func (l *Logger) NewLog(traceID string, request RequestContext) *Log {
 	if traceID == "" {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, Fields{}}
+	log := &Log{l, traceID, spanID, request, Fields{}}
 	return log
 }
 
 //NewRequestLog is a constructor for a log object for a request
-func (l *StandardLogger) NewRequestLog(r *http.Request) *Log {
+func (l *Logger) NewRequestLog(r *http.Request) (*Log, error) {
+	if r == nil {
+		return nil, errors.New("request cannot be nil")
+	}
+
 	traceID := r.Header.Get("trace-id")
 	if traceID == "" {
 		traceID = uuid.New().String()
 	}
+
 	prevSpanID := r.Header.Get("span-id")
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, prevSpanID, Fields{}}
-	return log
+
+	method := r.Method
+	path := r.URL.Path
+
+	headers := make(map[string][]string)
+	for key, value := range r.Header {
+		var logValue []string
+		//do not log sensitive information
+		if containsString(l.sensitiveHeaders, key) {
+			logValue = append(logValue, "---")
+		} else {
+			logValue = value
+		}
+		headers[key] = logValue
+	}
+
+	request := RequestContext{Method: method, Path: path, Headers: headers, PrevSpanID: prevSpanID}
+
+	log := &Log{l, traceID, spanID, request, Fields{}}
+	return log, nil
 }
 
 //getRequestFields() populates a map with all the fields of a request
@@ -249,14 +309,31 @@ func (l *Log) Errorf(format string, args ...interface{}) {
 //TODO: More error interfaces to be added
 
 //AddContext adds any relevant unstructured data to context map
-func (l *Log) AddContext(fieldName string, value interface{}) {
+// If the provided key already exists in the context, an error is returned
+func (l *Log) AddContext(fieldName string, value interface{}) error {
+	if _, ok := l.context[fieldName]; ok {
+		return fmt.Errorf("error adding context: %s already exists", fieldName)
+	}
+
+	l.context[fieldName] = value
+	return nil
+}
+
+//SetContext sets the provided context key to the provided value
+func (l *Log) SetContext(fieldName string, value interface{}) {
 	l.context[fieldName] = value
 }
 
-//PrintContext prints the entire context of a log object
-func (l *Log) PrintContext() {
+//RequestReceived prints the request context of a log object
+func (l *Log) RequestReceived() {
 	fields := l.getRequestFields()
-	fields["prev_span_id"] = l.prevSpanID
+	fields["request"] = l.request
+	l.logger.InfoWithFields("Request Received", fields)
+}
+
+//RequestComplete prints the context of a log object
+func (l *Log) RequestComplete() {
+	fields := l.getRequestFields()
 	fields["context"] = l.context
 	l.logger.InfoWithFields("Request Complete", fields)
 }
