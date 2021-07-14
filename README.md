@@ -5,17 +5,19 @@ Includes context information such as request ids, span ids, stack trace and othe
 
 ```
 type Log struct {
-	*StandardLogger
-	traceID    string
-	spanID     string
-	prevSpanID string
-	context    Fields
+	logger  *Logger
+	traceID string
+	spanID  string
+	request RequestContext
+	context Fields
 }
 ```
 
-- traceID- generated once for an incoming request.
-- spanID- generated for each new API call.
-- prevSpanID- spanID of the previous function
-- context- map for other unstructured context data
+- traceID - generated once for an incoming request
+- spanID  - generated for each new API call
+- request - details about the request
+- context - map for other unstructured context data
 
 If client sends a request to service 1, a trace-id and span-id is generated for service 1. If it makes any calls to other microservices, a span-id gets generated for each subsequent service, but trace-id stays the same.
+
+To get started, take a look at `example/app.go`
