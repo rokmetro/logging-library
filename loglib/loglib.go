@@ -1,7 +1,6 @@
 package loglib
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -161,9 +160,9 @@ func (l *Logger) NewLog(traceID string, request RequestContext) *Log {
 }
 
 //NewRequestLog is a constructor for a log object for a request
-func (l *Logger) NewRequestLog(r *http.Request) (*Log, error) {
+func (l *Logger) NewRequestLog(r *http.Request) *Log {
 	if r == nil {
-		return nil, errors.New("request cannot be nil")
+		return &Log{logger: l}
 	}
 
 	traceID := r.Header.Get("trace-id")
@@ -192,7 +191,7 @@ func (l *Logger) NewRequestLog(r *http.Request) (*Log, error) {
 	request := RequestContext{Method: method, Path: path, Headers: headers, PrevSpanID: prevSpanID}
 
 	log := &Log{l, traceID, spanID, request, Fields{}}
-	return log, nil
+	return log
 }
 
 //getRequestFields() populates a map with all the fields of a request
