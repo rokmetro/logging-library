@@ -19,6 +19,10 @@ type StandardLogger struct {
 	entry *logrus.Entry
 }
 
+func (l *StandardLogger) withFields(fields Fields) *StandardLogger {
+	return &StandardLogger{entry: l.entry.WithFields(fields.ToMap())}
+}
+
 //Fatal prints the log with a fatal error message and stops the service instance
 //WARNING: Please only use for critical error messages that should prevent the service from running
 func (l *StandardLogger) Fatal(message string) {
@@ -133,8 +137,7 @@ func (l *StandardLogger) NewRequestLog(r *http.Request) *Log {
 
 //getRequestFields() populates a map with all the fields of a request
 func (l *Log) getRequestFields() Fields {
-	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID,
-		"prev_span_id": l.prevSpanID, "function_name": getPrevFuncName()}
+	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getPrevFuncName()}
 	return fields
 }
 
@@ -145,74 +148,93 @@ func (l *Log) SetHeaders(r *http.Request) {
 
 //InvalidArg is a standard error interface for invalid arguments
 func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
-	fields := l.getRequestFields()
-	fields["argument"] = argumentName
-	fields["value"] = argumentValue
-	l.logger.ErrorWithFields("Invalid argument", fields.ToMap())
+	requestFields := l.getRequestFields()
+	requestFields["argument"] = argumentName
+	requestFields["value"] = argumentValue
+	l.logger.withFields(requestFields).Error("Invalid argument")
 }
 
 // MissingArg is a standard error interface for missing arguments
 func (l *Log) MissingArg(argumentName string) {
-	fields := l.getRequestFields()
-	fields["argument"] = argumentName
-	l.logger.ErrorWithFields("Missing argument", fields.ToMap())
-}
-
-//ErrorWithDetails is a standard error interface with custom message and details
-func (l *Log) ErrorWithDetails(message string, details Fields) {
 	requestFields := l.getRequestFields()
-	requestFields["details"] = details
-	l.logger.ErrorWithFields(message, requestFields)
-}
-
-//Errorf prints the log at error level with given formatted string
-func (l *Log) Errorf(format string, args ...interface{}) {
-	l.logger.Errorf(format, args)
+	requestFields["argument"] = argumentName
+	l.logger.withFields(requestFields).Error("Missing argument")
 }
 
 //Info prints the log at info level with given message
 func (l *Log) Info(message string) {
-	l.logger.Info(message)
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Info(message)
 }
 
-//InfoWithFields prints the log at info level with given fields and message
-func (l *Log) InfoWithFields(message string, fields Fields) {
-	l.logger.InfoWithFields(message, fields)
+//InfoWithDetails prints the log at info level with given fields and message
+func (l *Log) InfoWithDetails(message string, details Fields) {
+	requestFields := l.getRequestFields()
+	requestFields["details"] = details
+	l.logger.withFields(requestFields).Info(message)
 }
 
 //Infof prints the log at info level with given formatted string
 func (l *Log) Infof(format string, args ...interface{}) {
-	l.logger.Infof(format, args)
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Infof(format, args)
 }
 
 //Debug prints the log at debug level with given message
 func (l *Log) Debug(message string) {
-	l.logger.Debug(message)
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Debug(message)
 }
 
-//DebugWithFields prints the log at debug level with given fields and message
-func (l *Log) DebugWithFields(message string, fields Fields) {
-	l.logger.DebugWithFields(message, fields)
+//DebugWithDetails prints the log at debug level with given fields and message
+func (l *Log) DebugWithDetails(message string, details Fields) {
+	requestFields := l.getRequestFields()
+	requestFields["details"] = details
+	l.logger.withFields(requestFields).Debug(message)
 }
 
 //Debugf prints the log at debug level with given formatted string
 func (l *Log) Debugf(format string, args ...interface{}) {
-	l.logger.Debugf(format, args)
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Debugf(format, args)
 }
 
-//Warn prints the log at debug level with given message
+//Warn prints the log at warn level with given message
 func (l *Log) Warn(message string) {
-	l.logger.Warn(message)
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Warn(message)
 }
 
-//WarnWithFields prints the log at debug level with given fields and message
-func (l *Log) WarnWithFields(message string, fields Fields) {
-	l.logger.WarnWithFields(message, fields)
+//WarnWithDetails prints the log at warn level with given details and message
+func (l *Log) WarnWithDetails(message string, details Fields) {
+	requestFields := l.getRequestFields()
+	requestFields["details"] = details
+	l.logger.withFields(requestFields).Warn(message)
 }
 
 //Warnf prints the log at warn level with given formatted string
 func (l *Log) Warnf(format string, args ...interface{}) {
-	l.logger.Warnf(format, args)
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Warnf(format, args)
+}
+
+//Error prints the log at error level with given message
+func (l *Log) Error(format string) {
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Error(format)
+}
+
+//ErrorWithDetails prints the log at error level with given details and message
+func (l *Log) ErrorWithDetails(message string, details Fields) {
+	requestFields := l.getRequestFields()
+	requestFields["details"] = details
+	l.logger.withFields(requestFields).Error(message)
+}
+
+//Errorf prints the log at error level with given formatted string
+func (l *Log) Errorf(format string, args ...interface{}) {
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Errorf(format, args)
 }
 
 //TODO: More error interfaces to be added
@@ -225,8 +247,9 @@ func (l *Log) AddContext(fieldName string, value interface{}) {
 //PrintContext prints the entire context of a log object
 func (l *Log) PrintContext() {
 	fields := l.getRequestFields()
+	fields["prev_span_id"] = l.prevSpanID
 	fields["context"] = l.context
-	l.logger.InfoWithFields("Request Successful", fields)
+	l.logger.InfoWithFields("Request Complete", fields)
 }
 
 //getCurrFuncName- fetches the current function name
