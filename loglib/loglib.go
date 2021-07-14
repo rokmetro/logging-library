@@ -218,10 +218,18 @@ func (l *Log) Warnf(format string, args ...interface{}) {
 	l.logger.withFields(requestFields).Warnf(format, args)
 }
 
-//Error prints the log at error level with given message
-func (l *Log) Error(format string) {
+//LogError prints the log at error level with given message and error
+func (l *Log) LogError(message string, err error) {
 	requestFields := l.getRequestFields()
-	l.logger.withFields(requestFields).Error(format)
+	requestFields["error"] = err
+	l.logger.withFields(requestFields).Error(message)
+}
+
+//Error prints the log at error level with given message
+// Note: If possible, use LogError() instead
+func (l *Log) Error(message string) {
+	requestFields := l.getRequestFields()
+	l.logger.withFields(requestFields).Error(message)
 }
 
 //ErrorWithDetails prints the log at error level with given details and message
@@ -232,6 +240,7 @@ func (l *Log) ErrorWithDetails(message string, details Fields) {
 }
 
 //Errorf prints the log at error level with given formatted string
+// Note: If possible, use LogError() instead
 func (l *Log) Errorf(format string, args ...interface{}) {
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Errorf(format, args)
