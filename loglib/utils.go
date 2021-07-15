@@ -1,9 +1,22 @@
 package loglib
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
+
+//NewError returns an error containing the provided message
+func NewError(message string) error {
+	message = strings.ToLower(message)
+	return errors.New(message)
+}
+
+//FmtError returns an error containing the formatted message
+func FmtError(message string, a ...interface{}) error {
+	message = strings.ToLower(message)
+	return fmt.Errorf(message, a)
+}
 
 //WrapErrorf returns an error containing the provided message and error
 func WrapError(message string, err error) error {
