@@ -12,8 +12,8 @@ func NewError(message string) error {
 	return errors.New(message)
 }
 
-//FmtError returns an error containing the formatted message
-func FmtError(message string, a ...interface{}) error {
+//NewErrorf returns an error containing the formatted message
+func NewErrorf(message string, a ...interface{}) error {
 	message = strings.ToLower(message)
 	return fmt.Errorf(message, a)
 }
