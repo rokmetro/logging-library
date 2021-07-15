@@ -3,7 +3,6 @@ package loglib
 import (
 	"fmt"
 	"net/http"
-	"runtime"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -66,7 +65,7 @@ func (l *Logger) Fatal(message string) {
 //Fatalf prints the log with a fatal format error message and stops the service instance
 //WARNING: Please only use for critical error messages that should prevent the service from running
 func (l *Logger) Fatalf(message string, args ...interface{}) {
-	l.entry.Fatalf(message, args)
+	l.entry.Fatalf(message, args...)
 }
 
 //Error prints the log at error level with given message
@@ -81,7 +80,7 @@ func (l *Logger) ErrorWithFields(message string, fields Fields) {
 
 //Errorf prints the log at error level with given formatted string
 func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.entry.Errorf(format, args)
+	l.entry.Errorf(format, args...)
 }
 
 //Info prints the log at info level with given message
@@ -96,7 +95,7 @@ func (l *Logger) InfoWithFields(message string, fields Fields) {
 
 //Infof prints the log at info level with given formatted string
 func (l *Logger) Infof(format string, args ...interface{}) {
-	l.entry.Infof(format, args)
+	l.entry.Infof(format, args...)
 }
 
 //Debug prints the log at debug level with given message
@@ -111,7 +110,7 @@ func (l *Logger) DebugWithFields(message string, fields Fields) {
 
 //Debugf prints the log at debug level with given formatted string
 func (l *Logger) Debugf(format string, args ...interface{}) {
-	l.entry.Debugf(format, args)
+	l.entry.Debugf(format, args...)
 }
 
 //Warn prints the log at warn level with given message
@@ -126,7 +125,7 @@ func (l *Logger) WarnWithFields(message string, fields Fields) {
 
 //Warnf prints the log at warn level with given formatted string
 func (l *Logger) Warnf(format string, args ...interface{}) {
-	l.entry.Warnf(format, args)
+	l.entry.Warnf(format, args...)
 }
 
 type RequestContext struct {
@@ -196,7 +195,7 @@ func (l *Logger) NewRequestLog(r *http.Request) *Log {
 
 //getRequestFields() populates a map with all the fields of a request
 func (l *Log) getRequestFields() Fields {
-	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getPrevFuncName()}
+	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getRequestFieldsPrevFuncName()}
 	return fields
 }
 
@@ -236,7 +235,7 @@ func (l *Log) InfoWithDetails(message string, details Fields) {
 //Infof prints the log at info level with given formatted string
 func (l *Log) Infof(format string, args ...interface{}) {
 	requestFields := l.getRequestFields()
-	l.logger.withFields(requestFields).Infof(format, args)
+	l.logger.withFields(requestFields).Infof(format, args...)
 }
 
 //Debug prints the log at debug level with given message
@@ -255,7 +254,7 @@ func (l *Log) DebugWithDetails(message string, details Fields) {
 //Debugf prints the log at debug level with given formatted string
 func (l *Log) Debugf(format string, args ...interface{}) {
 	requestFields := l.getRequestFields()
-	l.logger.withFields(requestFields).Debugf(format, args)
+	l.logger.withFields(requestFields).Debugf(format, args...)
 }
 
 //Warn prints the log at warn level with given message
@@ -274,7 +273,7 @@ func (l *Log) WarnWithDetails(message string, details Fields) {
 //Warnf prints the log at warn level with given formatted string
 func (l *Log) Warnf(format string, args ...interface{}) {
 	requestFields := l.getRequestFields()
-	l.logger.withFields(requestFields).Warnf(format, args)
+	l.logger.withFields(requestFields).Warnf(format, args...)
 }
 
 //LogError prints the log at error level with given message and error
@@ -304,7 +303,7 @@ func (l *Log) ErrorWithDetails(message string, details Fields) {
 // Note: If possible, use LogError() instead
 func (l *Log) Errorf(format string, args ...interface{}) {
 	requestFields := l.getRequestFields()
-	l.logger.withFields(requestFields).Errorf(format, args)
+	l.logger.withFields(requestFields).Errorf(format, args...)
 }
 
 //TODO: More error interfaces to be added
@@ -337,23 +336,4 @@ func (l *Log) RequestComplete() {
 	fields := l.getRequestFields()
 	fields["context"] = l.context
 	l.logger.InfoWithFields("Request Complete", fields)
-}
-
-//getCurrFuncName- fetches the current function name
-func getCurrFuncName() string {
-	return GetFuncName(4)
-}
-
-//getPrevFuncName- fetches the previous function name
-func getPrevFuncName() string {
-	return GetFuncName(5)
-}
-
-//GetFuncName fetches the name of a function caller based on the numFrames
-func GetFuncName(numFrames int) string {
-	pc := make([]uintptr, 15)
-	n := runtime.Callers(numFrames, pc)
-	frames := runtime.CallersFrames(pc[:n])
-	frame, _ := frames.Next()
-	return frame.Function
 }

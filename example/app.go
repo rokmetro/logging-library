@@ -26,11 +26,26 @@ func (we WebAdapter) test(l *log.Log, w http.ResponseWriter, req *http.Request) 
 	param := req.URL.Query().Get("param")
 	l.AddContext("param", param)
 
+	err := checkParam(param)
+	if err != nil {
+		msg := l.LogError("error checking param", err)
+		http.Error(w, msg, http.StatusBadRequest)
+		return
+	}
+
 	l.Info("Success")
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Access granted"))
+	w.Write([]byte("Success"))
+}
+
+func checkParam(param string) error {
+	if param == "test" {
+		return nil
+	}
+
+	return log.NewErrorf("invalid param: %s", param)
 }
 
 // wrapFunc provides a standard wrapper that performs request logging
@@ -78,7 +93,7 @@ func CallTest() (*http.Response, error) {
 	req.Header.Set("span-id", "4313")
 
 	q := req.URL.Query()
-	q.Add("param", "test")
+	q.Add("param", "test2")
 	req.URL.RawQuery = q.Encode()
 
 	fmt.Println(req.URL.String())
