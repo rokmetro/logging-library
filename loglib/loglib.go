@@ -278,10 +278,12 @@ func (l *Log) Warnf(format string, args ...interface{}) {
 }
 
 //LogError prints the log at error level with given message and error
-func (l *Log) LogError(message string, err error) {
+//	Returns error message as string
+func (l *Log) LogError(message string, err error) string {
 	requestFields := l.getRequestFields()
 	requestFields["error"] = err
 	l.logger.withFields(requestFields).Error(message)
+	return fmt.Sprintf("%s: %v", message, err)
 }
 
 //Error prints the log at error level with given message
