@@ -195,17 +195,29 @@ func (l *Logger) NewRequestLog(r *http.Request) *Log {
 
 //getRequestFields() populates a map with all the fields of a request
 func (l *Log) getRequestFields() Fields {
+	if l == nil {
+		return Fields{}
+	}
+
 	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getRequestFieldsPrevFuncName()}
 	return fields
 }
 
 func (l *Log) SetHeaders(r *http.Request) {
+	if l == nil {
+		return
+	}
+
 	r.Header.Set("trace-id", l.traceID)
 	r.Header.Set("span-id", l.spanID)
 }
 
 //InvalidArg is a standard error interface for invalid arguments
 func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["argument"] = argumentName
 	requestFields["value"] = argumentValue
@@ -214,6 +226,10 @@ func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
 
 // MissingArg is a standard error interface for missing arguments
 func (l *Log) MissingArg(argumentName string) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["argument"] = argumentName
 	l.logger.withFields(requestFields).Error("Missing argument")
@@ -221,12 +237,20 @@ func (l *Log) MissingArg(argumentName string) {
 
 //Info prints the log at info level with given message
 func (l *Log) Info(message string) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Info(message)
 }
 
 //InfoWithDetails prints the log at info level with given fields and message
 func (l *Log) InfoWithDetails(message string, details Fields) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["details"] = details
 	l.logger.withFields(requestFields).Info(message)
@@ -234,18 +258,30 @@ func (l *Log) InfoWithDetails(message string, details Fields) {
 
 //Infof prints the log at info level with given formatted string
 func (l *Log) Infof(format string, args ...interface{}) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Infof(format, args...)
 }
 
 //Debug prints the log at debug level with given message
 func (l *Log) Debug(message string) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Debug(message)
 }
 
 //DebugWithDetails prints the log at debug level with given fields and message
 func (l *Log) DebugWithDetails(message string, details Fields) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["details"] = details
 	l.logger.withFields(requestFields).Debug(message)
@@ -253,18 +289,30 @@ func (l *Log) DebugWithDetails(message string, details Fields) {
 
 //Debugf prints the log at debug level with given formatted string
 func (l *Log) Debugf(format string, args ...interface{}) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Debugf(format, args...)
 }
 
 //Warn prints the log at warn level with given message
 func (l *Log) Warn(message string) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Warn(message)
 }
 
 //WarnWithDetails prints the log at warn level with given details and message
 func (l *Log) WarnWithDetails(message string, details Fields) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["details"] = details
 	l.logger.withFields(requestFields).Warn(message)
@@ -272,6 +320,10 @@ func (l *Log) WarnWithDetails(message string, details Fields) {
 
 //Warnf prints the log at warn level with given formatted string
 func (l *Log) Warnf(format string, args ...interface{}) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Warnf(format, args...)
 }
@@ -279,6 +331,10 @@ func (l *Log) Warnf(format string, args ...interface{}) {
 //LogError prints the log at error level with given message and error
 //	Returns error message as string
 func (l *Log) LogError(message string, err error) string {
+	if l == nil || l.logger == nil {
+		return ""
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["error"] = err
 	l.logger.withFields(requestFields).Error(message)
@@ -288,12 +344,20 @@ func (l *Log) LogError(message string, err error) string {
 //Error prints the log at error level with given message
 // Note: If possible, use LogError() instead
 func (l *Log) Error(message string) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Error(message)
 }
 
 //ErrorWithDetails prints the log at error level with given details and message
 func (l *Log) ErrorWithDetails(message string, details Fields) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	requestFields["details"] = details
 	l.logger.withFields(requestFields).Error(message)
@@ -302,6 +366,10 @@ func (l *Log) ErrorWithDetails(message string, details Fields) {
 //Errorf prints the log at error level with given formatted string
 // Note: If possible, use LogError() instead
 func (l *Log) Errorf(format string, args ...interface{}) {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Errorf(format, args...)
 }
@@ -311,6 +379,10 @@ func (l *Log) Errorf(format string, args ...interface{}) {
 //AddContext adds any relevant unstructured data to context map
 // If the provided key already exists in the context, an error is returned
 func (l *Log) AddContext(fieldName string, value interface{}) error {
+	if l == nil {
+		return fmt.Errorf("error adding context: nil log")
+	}
+
 	if _, ok := l.context[fieldName]; ok {
 		return fmt.Errorf("error adding context: %s already exists", fieldName)
 	}
@@ -326,6 +398,10 @@ func (l *Log) SetContext(fieldName string, value interface{}) {
 
 //RequestReceived prints the request context of a log object
 func (l *Log) RequestReceived() {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	fields := l.getRequestFields()
 	fields["request"] = l.request
 	l.logger.InfoWithFields("Request Received", fields)
@@ -333,6 +409,10 @@ func (l *Log) RequestReceived() {
 
 //RequestComplete prints the context of a log object
 func (l *Log) RequestComplete() {
+	if l == nil || l.logger == nil {
+		return
+	}
+
 	fields := l.getRequestFields()
 	fields["context"] = l.context
 	l.logger.InfoWithFields("Request Complete", fields)
