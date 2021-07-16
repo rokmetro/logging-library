@@ -48,7 +48,7 @@ func DataMessage(status logDataStatus, dataType logData, args logArgs) string {
 	return fmt.Sprintf("%s %s%s", status, dataType, argStr)
 }
 
-//DataMessage generates an error for a data error
+//DataError generates an error for a data element
 //	status: The status of the data
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
@@ -58,10 +58,21 @@ func DataError(status logDataStatus, dataType logData, args logArgs) error {
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
 
+//WrapDataError wraps an error for a data element
+//	status: The status of the data
+//	dataType: The data type that the error is occurring on
+//	args: Any args that should be included in the message (nil if none)
+//  err: Error to wrap
+func WrapDataError(status logDataStatus, dataType logData, args logArgs, err error) error {
+	message := DataMessage(status, dataType, args)
+	message = strings.ToLower(message)
+	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
+}
+
 //ActionMessage generates a message string for an action
 //	status: The status of the action
-//	dataType: The data type that the action is occurring on
 //	action: The action that is occurring
+//	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
 func ActionMessage(status logActionStatus, action logAction, dataType logData, args logArgs) string {
 	argStr := ""
@@ -75,14 +86,25 @@ func ActionMessage(status logActionStatus, action logAction, dataType logData, a
 	return fmt.Sprintf("%s %s %s%s", status, action, dataType, argStr)
 }
 
-//ActionError generates an error for an action error
-//	dataType: The data type that the action is occurring on
+//ActionError generates an error for an action
 //	action: The action that is occurring
+//	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ActionError(status logActionStatus, action logAction, dataType logData, args logArgs) error {
-	message := ActionMessage(status, action, dataType, args)
+func ActionError(action logAction, dataType logData, args logArgs) error {
+	message := ActionMessage(ErrorStatus, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
+}
+
+//WrapActionError wraps an error for an action
+//	action: The action that is occurring
+//	dataType: The data type that the action is occurring on
+//	args: Any args that should be included in the message (nil if none)
+//	err: Error to wrap
+func WrapActionError(action logAction, dataType logData, args logArgs, err error) error {
+	message := ActionMessage(ErrorStatus, action, dataType, args)
+	message = strings.ToLower(message)
+	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }
 
 func containsString(slice []string, val string) bool {

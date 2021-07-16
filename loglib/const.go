@@ -78,6 +78,9 @@ const (
 	Warn  logLevel = "Warn"
 	Error logLevel = "Error"
 
+	//Errors
+	Unimplemented string = "Unimplemented"
+
 	//Types
 	ValidStatus   logDataStatus = "Valid"
 	FoundStatus   logDataStatus = "Found"
@@ -95,11 +98,15 @@ const (
 	QueryParamData   logData = "query param"
 	ArgData          logData = "arg"
 
+	//Actions
+	InitializeAction logAction = "initializing"
+
 	//Request/Response Actions
-	MakeAction logAction = "making"
+	SendAction logAction = "sending"
 	ReadAction logAction = "reading"
 
 	//Encode Actions
+	EncodeAction    logAction = "encoding"
 	MarshalAction   logAction = "marshalling"
 	UnmarshalAction logAction = "unmarshalling"
 	ValidateAction  logAction = "validating"
