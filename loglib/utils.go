@@ -36,7 +36,7 @@ func WrapErrorf(format string, err error, args ...interface{}) error {
 //	status: The status of the data
 //	dataType: The data type
 //	args: Any args that should be included in the message (nil if none)
-func DataMessage(status logDataStatus, dataType logData, args logArgs) string {
+func DataMessage(status logDataStatus, dataType LogData, args logArgs) string {
 	argStr := ""
 	if args != nil {
 		argStr = args.String()
@@ -52,7 +52,7 @@ func DataMessage(status logDataStatus, dataType logData, args logArgs) string {
 //	status: The status of the data
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func DataError(status logDataStatus, dataType logData, args logArgs) error {
+func DataError(status logDataStatus, dataType LogData, args logArgs) error {
 	message := DataMessage(status, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
@@ -63,7 +63,7 @@ func DataError(status logDataStatus, dataType logData, args logArgs) error {
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
 //  err: Error to wrap
-func WrapDataError(status logDataStatus, dataType logData, args logArgs, err error) error {
+func WrapDataError(status logDataStatus, dataType LogData, args logArgs, err error) error {
 	message := DataMessage(status, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
@@ -74,7 +74,7 @@ func WrapDataError(status logDataStatus, dataType logData, args logArgs, err err
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ActionMessage(status logActionStatus, action logAction, dataType logData, args logArgs) string {
+func ActionMessage(status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
 	argStr := ""
 	if args != nil {
 		argStr = args.String()
@@ -90,7 +90,7 @@ func ActionMessage(status logActionStatus, action logAction, dataType logData, a
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ActionError(action logAction, dataType logData, args logArgs) error {
+func ActionError(action LogAction, dataType LogData, args logArgs) error {
 	message := ActionMessage(ErrorStatus, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
@@ -101,7 +101,7 @@ func ActionError(action logAction, dataType logData, args logArgs) error {
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
 //	err: Error to wrap
-func WrapActionError(action logAction, dataType logData, args logArgs, err error) error {
+func WrapActionError(action LogAction, dataType LogData, args logArgs, err error) error {
 	message := ActionMessage(ErrorStatus, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)

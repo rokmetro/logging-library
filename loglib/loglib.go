@@ -231,7 +231,7 @@ func (l *Log) SetHeaders(r *http.Request) {
 //	status: The status of the data
 //	dataType: The data type
 //	args: Any args that should be included in the message (nil if none)
-func (l *Log) LogData(level logLevel, status logDataStatus, dataType logData, args logArgs) string {
+func (l *Log) LogData(level logLevel, status logDataStatus, dataType LogData, args logArgs) string {
 	msg := DataMessage(status, dataType, args)
 	l.addLayer(1)
 
@@ -251,11 +251,24 @@ func (l *Log) LogData(level logLevel, status logDataStatus, dataType logData, ar
 	return msg
 }
 
-//ErrorData logs and returns a data message for the given error
+//WarnData logs and returns a data message for the given error at the warn level
 //	status: The status of the data
 //	dataType: The data type
 //	err: Error message
-func (l *Log) ErrorData(status logDataStatus, dataType logData, err error) string {
+func (l *Log) WarnData(status logDataStatus, dataType LogData, err error) string {
+	message := DataMessage(status, dataType, nil)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	return l.WarnError(message, err)
+}
+
+//ErrorData logs and returns a data message for the given error at the error level
+//	status: The status of the data
+//	dataType: The data type
+//	err: Error message
+func (l *Log) ErrorData(status logDataStatus, dataType LogData, err error) string {
 	message := DataMessage(status, dataType, nil)
 
 	l.addLayer(1)
@@ -271,7 +284,7 @@ func (l *Log) ErrorData(status logDataStatus, dataType logData, err error) strin
 //	err: The error received from the application
 //	code: The HTTP response code to be set
 //	hideDetails: Only provide 'msg' not 'err' in HTTP response when true
-func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, dataType logData, err error, code int, hideDetails bool) {
+func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, dataType LogData, err error, code int, hideDetails bool) {
 	message := DataMessage(status, dataType, nil)
 
 	l.addLayer(1)
@@ -286,7 +299,7 @@ func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, data
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func (l *Log) LogAction(level logLevel, status logActionStatus, action logAction, dataType logData, args logArgs) string {
+func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
 	msg := ActionMessage(status, action, dataType, args)
 	l.addLayer(1)
 
@@ -306,11 +319,24 @@ func (l *Log) LogAction(level logLevel, status logActionStatus, action logAction
 	return msg
 }
 
-//ErrorAction logs and returns an action message for the given error
+//WarnAction logs and returns an action message for the given error at the warn level
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	err: Error message
-func (l *Log) ErrorAction(action logAction, dataType logData, err error) string {
+func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
+	message := ActionMessage(ErrorStatus, action, dataType, nil)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	return l.WarnError(message, err)
+}
+
+//ErrorAction logs and returns an action message for the given error at the error level
+//	action: The action that is occurring
+//	dataType: The data type that the action is occurring on
+//	err: Error message
+func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string {
 	message := ActionMessage(ErrorStatus, action, dataType, nil)
 
 	l.addLayer(1)
@@ -326,7 +352,7 @@ func (l *Log) ErrorAction(action logAction, dataType logData, err error) string 
 //	err: The error received from the application
 //	code: The HTTP response code to be set
 //	hideDetails: Only provide 'msg' not 'err' in HTTP response when true
-func (l *Log) RequestErrorAction(w http.ResponseWriter, action logAction, dataType logData, err error, code int, hideDetails bool) {
+func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataType LogData, err error, code int, hideDetails bool) {
 	message := ActionMessage(ErrorStatus, action, dataType, nil)
 
 	l.addLayer(1)
@@ -426,6 +452,20 @@ func (l *Log) Warnf(format string, args ...interface{}) {
 
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Warnf(format, args...)
+}
+
+//WarnError prints the log at warn level with given message and error
+//	Returns error message as string
+func (l *Log) WarnError(message string, err error) string {
+	msg := fmt.Sprintf("%s: %v", message, err)
+	if l == nil || l.logger == nil {
+		return msg
+	}
+
+	requestFields := l.getRequestFields()
+	requestFields["error"] = err
+	l.logger.withFields(requestFields).Warn(message)
+	return msg
 }
 
 //LogError prints the log at error level with given message and error
