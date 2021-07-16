@@ -146,6 +146,7 @@ type Log struct {
 	spanID  string
 	request RequestContext
 	context Fields
+	layer   int
 }
 
 //NewLog is a constructor for a log object
@@ -154,7 +155,7 @@ func (l *Logger) NewLog(traceID string, request RequestContext) *Log {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, request, Fields{}}
+	log := &Log{l, traceID, spanID, request, Fields{}, 0}
 	return log
 }
 
@@ -189,20 +190,33 @@ func (l *Logger) NewRequestLog(r *http.Request) *Log {
 
 	request := RequestContext{Method: method, Path: path, Headers: headers, PrevSpanID: prevSpanID}
 
-	log := &Log{l, traceID, spanID, request, Fields{}}
+	log := &Log{l, traceID, spanID, request, Fields{}, 0}
 	return log
 }
 
+func (l *Log) resetLayer() {
+	l.layer = 0
+}
+
+func (l *Log) addLayer(layer int) {
+	l.layer += layer
+}
+
 //getRequestFields() populates a map with all the fields of a request
+//	layer: Number of function calls between caller and getRequestFields()
 func (l *Log) getRequestFields() Fields {
 	if l == nil {
 		return Fields{}
 	}
 
-	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getRequestFieldsPrevFuncName()}
+	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getLogPrevFuncName(l.layer)}
+	l.resetLayer()
+
 	return fields
 }
 
+//SetHeaders sets the trace and span id headers for a request to another service
+//	This function should always be called when making a request to another rokwire service
 func (l *Log) SetHeaders(r *http.Request) {
 	if l == nil {
 		return
@@ -212,27 +226,113 @@ func (l *Log) SetHeaders(r *http.Request) {
 	r.Header.Set("span-id", l.spanID)
 }
 
-//InvalidArg is a standard error interface for invalid arguments
-func (l *Log) InvalidArg(argumentName string, argumentValue interface{}) {
-	if l == nil || l.logger == nil {
-		return
+//LogData logs and returns a data message at the designated level
+//	level: The log level (Info, Debug, Warn, Error)
+//	status: The status of the data
+//	dataType: The data type
+//	args: Any args that should be included in the message (nil if none)
+func (l *Log) LogData(level logLevel, status logDataStatus, dataType logData, args logArgs) string {
+	msg := DataMessage(status, dataType, args)
+	l.addLayer(1)
+
+	switch level {
+	case Info:
+		l.Error(msg)
+	case Debug:
+		l.Debug(msg)
+	case Warn:
+		l.Warn(msg)
+	case Error:
+		l.Error(msg)
+	default:
+		l.resetLayer()
 	}
 
-	requestFields := l.getRequestFields()
-	requestFields["argument"] = argumentName
-	requestFields["value"] = argumentValue
-	l.logger.withFields(requestFields).Error("Invalid argument")
+	return msg
 }
 
-// MissingArg is a standard error interface for missing arguments
-func (l *Log) MissingArg(argumentName string) {
-	if l == nil || l.logger == nil {
-		return
+//ErrorData logs and returns a data message for the given error
+//	status: The status of the data
+//	dataType: The data type
+//	err: Error message
+func (l *Log) ErrorData(status logDataStatus, dataType logData, err error) string {
+	message := DataMessage(status, dataType, nil)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	return l.LogError(message, err)
+}
+
+//RequestErrorData logs a data message and error and sets it as the HTTP response
+//	w: The http response writer for the active request
+//	status: The status of the data
+//	dataType: The data type
+//	err: The error received from the application
+//	code: The HTTP response code to be set
+//	hideDetails: Only provide 'msg' not 'err' in HTTP response when true
+func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, dataType logData, err error, code int, hideDetails bool) {
+	message := DataMessage(status, dataType, nil)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	l.RequestError(w, message, err, code, hideDetails)
+}
+
+//LogAction logs and returns an action message at the designated level
+//	level: The log level (Info, Debug, Warn, Error)
+//	status: The status of the action
+//	action: The action that is occurring
+//	dataType: The data type that the action is occurring on
+//	args: Any args that should be included in the message (nil if none)
+func (l *Log) LogAction(level logLevel, status logActionStatus, action logAction, dataType logData, args logArgs) string {
+	msg := ActionMessage(status, action, dataType, args)
+	l.addLayer(1)
+
+	switch level {
+	case Info:
+		l.Error(msg)
+	case Debug:
+		l.Debug(msg)
+	case Warn:
+		l.Warn(msg)
+	case Error:
+		l.Error(msg)
+	default:
+		l.resetLayer()
 	}
 
-	requestFields := l.getRequestFields()
-	requestFields["argument"] = argumentName
-	l.logger.withFields(requestFields).Error("Missing argument")
+	return msg
+}
+
+//ErrorAction logs and returns an action message for the given error
+//	action: The action that is occurring
+//	dataType: The data type that the action is occurring on
+//	err: Error message
+func (l *Log) ErrorAction(action logAction, dataType logData, err error) string {
+	message := ActionMessage(ErrorStatus, action, dataType, nil)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	return l.LogError(message, err)
+}
+
+//RequestErrorAction logs an action message and error and sets it as the HTTP response
+//	w: The http response writer for the active request
+//	action: The action that is occurring
+//	dataType: The data type
+//	err: The error received from the application
+//	code: The HTTP response code to be set
+//	hideDetails: Only provide 'msg' not 'err' in HTTP response when true
+func (l *Log) RequestErrorAction(w http.ResponseWriter, action logAction, dataType logData, err error, code int, hideDetails bool) {
+	message := ActionMessage(ErrorStatus, action, dataType, nil)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	l.RequestError(w, message, err, code, hideDetails)
 }
 
 //Info prints the log at info level with given message
@@ -331,14 +431,15 @@ func (l *Log) Warnf(format string, args ...interface{}) {
 //LogError prints the log at error level with given message and error
 //	Returns error message as string
 func (l *Log) LogError(message string, err error) string {
+	msg := fmt.Sprintf("%s: %v", message, err)
 	if l == nil || l.logger == nil {
-		return ""
+		return msg
 	}
 
 	requestFields := l.getRequestFields()
 	requestFields["error"] = err
 	l.logger.withFields(requestFields).Error(message)
-	return fmt.Sprintf("%s: %v", message, err)
+	return msg
 }
 
 //Error prints the log at error level with given message
@@ -372,6 +473,27 @@ func (l *Log) Errorf(format string, args ...interface{}) {
 
 	requestFields := l.getRequestFields()
 	l.logger.withFields(requestFields).Errorf(format, args...)
+}
+
+//RequestError logs the provided message and error and sets it as the HTTP response
+//	Params:
+//		w: The http response writer for the active request
+//		msg: The error message
+//		err: The error received from the application
+//		code: The HTTP response code to be set
+//		hideDetails: Only provide 'msg' not 'err' in HTTP response when true
+func (l *Log) RequestError(w http.ResponseWriter, msg string, err error, code int, hideDetails bool) {
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	l.SetContext("status_code", code)
+
+	msg = fmt.Sprintf("%d - %s", code, msg)
+	detailMsg := l.LogError(msg, err)
+	if !hideDetails {
+		msg = detailMsg
+	}
+	http.Error(w, msg, code)
 }
 
 //TODO: More error interfaces to be added

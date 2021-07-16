@@ -32,6 +32,59 @@ func WrapErrorf(format string, err error, args ...interface{}) error {
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }
 
+//DataMessage generates a message string for a data element
+//	status: The status of the data
+//	dataType: The data type
+//	args: Any args that should be included in the message (nil if none)
+func DataMessage(status logDataStatus, dataType logData, args logArgs) string {
+	argStr := ""
+	if args != nil {
+		argStr = args.String()
+		if argStr != "" {
+			argStr = ": " + argStr
+		}
+	}
+
+	return fmt.Sprintf("%s %s%s", status, dataType, argStr)
+}
+
+//DataMessage generates an error for a data error
+//	status: The status of the data
+//	dataType: The data type that the error is occurring on
+//	args: Any args that should be included in the message (nil if none)
+func DataError(status logDataStatus, dataType logData, args logArgs) error {
+	message := DataMessage(status, dataType, args)
+	message = strings.ToLower(message)
+	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
+}
+
+//ActionMessage generates a message string for an action
+//	status: The status of the action
+//	dataType: The data type that the action is occurring on
+//	action: The action that is occurring
+//	args: Any args that should be included in the message (nil if none)
+func ActionMessage(status logActionStatus, action logAction, dataType logData, args logArgs) string {
+	argStr := ""
+	if args != nil {
+		argStr = args.String()
+		if argStr != "" {
+			argStr = " for " + argStr
+		}
+	}
+
+	return fmt.Sprintf("%s %s %s%s", status, action, dataType, argStr)
+}
+
+//ActionError generates an error for an action error
+//	dataType: The data type that the action is occurring on
+//	action: The action that is occurring
+//	args: Any args that should be included in the message (nil if none)
+func ActionError(status logActionStatus, action logAction, dataType logData, args logArgs) error {
+	message := ActionMessage(status, action, dataType, args)
+	message = strings.ToLower(message)
+	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
+}
+
 func containsString(slice []string, val string) bool {
 	for _, v := range slice {
 		if val == v {
@@ -46,9 +99,10 @@ func getErrorPrevFuncName() string {
 	return GetFuncName(4)
 }
 
-//getRequestFieldsPrevFuncName - fetches the previous function name for the GetRequestFields function
-func getRequestFieldsPrevFuncName() string {
-	return GetFuncName(5)
+//getLogPrevFuncName - fetches the calling function name when logging
+//	layer: Number of internal library function calls above caller
+func getLogPrevFuncName(layer int) string {
+	return GetFuncName(5 + layer)
 }
 
 //GetFuncName fetches the name of a function caller based on the numFrames

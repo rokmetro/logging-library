@@ -28,15 +28,13 @@ func (we WebAdapter) test(l *log.Log, w http.ResponseWriter, req *http.Request) 
 
 	err := checkParam(param)
 	if err != nil {
-		msg := l.LogError("error checking param", err)
-		http.Error(w, msg, http.StatusBadRequest)
+		l.RequestErrorAction(w, log.ValidateAction, log.QueryParamData, err, http.StatusBadRequest, false)
 		return
 	}
 
 	l.Info("Success")
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Success"))
 }
 
@@ -45,7 +43,7 @@ func checkParam(param string) error {
 		return nil
 	}
 
-	return log.NewErrorf("invalid param: %s", param)
+	return log.DataError(log.InvalidStatus, log.ArgData, &log.FieldArgs{"param": param})
 }
 
 // wrapFunc provides a standard wrapper that performs request logging
