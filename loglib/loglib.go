@@ -27,10 +27,6 @@ type LoggerOpts struct {
 	//SensitiveHeaders: A list of any headers that contain sensitive information and should not be logged
 	//				    Defaults: Authorization, Csrf
 	SensitiveHeaders []string
-	//Level: Only logs with a severity at the specific level or higher will be displayed
-	//		 Order: (lowest) Debug, Info, Warn, Error (highest)
-	//		 Default: Info
-	Level logLevel
 }
 
 //NewLogger is constructor for a logger object with initial configuration at the service level
@@ -49,23 +45,25 @@ func NewLogger(serviceName string, opts *LoggerOpts) *Logger {
 		}
 
 		sensitiveHeaders = append(sensitiveHeaders, opts.SensitiveHeaders...)
-
-		switch opts.Level {
-		case Debug:
-			baseLogger.SetLevel(logrus.DebugLevel)
-		case Info:
-			baseLogger.SetLevel(logrus.InfoLevel)
-		case Warn:
-			baseLogger.SetLevel(logrus.WarnLevel)
-		case Error:
-			baseLogger.SetLevel(logrus.ErrorLevel)
-		default:
-		}
 	}
 
 	standardFields := logrus.Fields{"service_name": serviceName} //All common fields for logs of a given service
 	contextLogger := &Logger{entry: baseLogger.WithFields(standardFields), sensitiveHeaders: sensitiveHeaders}
 	return contextLogger
+}
+
+func (l *Logger) SetLevel(level logLevel) {
+	switch level {
+	case Debug:
+		l.entry.Logger.SetLevel(logrus.DebugLevel)
+	case Info:
+		l.entry.Logger.SetLevel(logrus.InfoLevel)
+	case Warn:
+		l.entry.Logger.SetLevel(logrus.WarnLevel)
+	case Error:
+		l.entry.Logger.SetLevel(logrus.ErrorLevel)
+	default:
+	}
 }
 
 func (l *Logger) withFields(fields Fields) *Logger {
