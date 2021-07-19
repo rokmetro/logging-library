@@ -53,14 +53,14 @@ type logLevel string
 func LogLevelFromString(level string) *logLevel {
 	var lLevel logLevel
 
-	switch level {
-	case string(Debug):
+	switch strings.ToLower(level) {
+	case strings.ToLower(string(Debug)):
 		lLevel = Debug
-	case string(Info):
+	case strings.ToLower(string(Info)):
 		lLevel = Info
-	case string(Warn):
+	case strings.ToLower(string(Warn)):
 		lLevel = Warn
-	case string(Error):
+	case strings.ToLower(string(Error)):
 		lLevel = Error
 	}
 
