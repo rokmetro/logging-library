@@ -22,11 +22,15 @@ type Logger struct {
 
 //LoggerOpts provides configuration options for the Logger type
 type LoggerOpts struct {
-	//JsonFmt When true, logs will be output in JSON format. Otherwise logs will be in logfmt
+	//JsonFmt: When true, logs will be output in JSON format. Otherwise logs will be in logfmt
 	JsonFmt bool
 	//SensitiveHeaders: A list of any headers that contain sensitive information and should not be logged
 	//				    Defaults: Authorization, Csrf
 	SensitiveHeaders []string
+	//Level: Only logs with a severity at the specific level or higher will be displayed
+	//		 Order: (lowest) Debug, Info, Warn, Error (highest)
+	//		 Default: Info
+	Level logLevel
 }
 
 //NewLogger is constructor for a logger object with initial configuration at the service level
@@ -45,6 +49,18 @@ func NewLogger(serviceName string, opts *LoggerOpts) *Logger {
 		}
 
 		sensitiveHeaders = append(sensitiveHeaders, opts.SensitiveHeaders...)
+
+		switch opts.Level {
+		case Debug:
+			baseLogger.SetLevel(logrus.DebugLevel)
+		case Info:
+			baseLogger.SetLevel(logrus.InfoLevel)
+		case Warn:
+			baseLogger.SetLevel(logrus.WarnLevel)
+		case Error:
+			baseLogger.SetLevel(logrus.ErrorLevel)
+		default:
+		}
 	}
 
 	standardFields := logrus.Fields{"service_name": serviceName} //All common fields for logs of a given service
@@ -236,10 +252,10 @@ func (l *Log) LogData(level logLevel, status logDataStatus, dataType LogData, ar
 	l.addLayer(1)
 
 	switch level {
-	case Info:
-		l.Error(msg)
 	case Debug:
 		l.Debug(msg)
+	case Info:
+		l.Error(msg)
 	case Warn:
 		l.Warn(msg)
 	case Error:
@@ -305,10 +321,10 @@ func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction
 	l.addLayer(1)
 
 	switch level {
-	case Info:
-		l.Error(msg)
 	case Debug:
 		l.Debug(msg)
+	case Info:
+		l.Error(msg)
 	case Warn:
 		l.Warn(msg)
 	case Error:
