@@ -77,34 +77,38 @@ const (
 	ErrorStatus   logActionStatus = "Error"
 
 	//Data
-	ArgData LogData = "arg"
+	TypeArg         LogData = "arg"
+	TypeTransaction LogData = "transaction"
 
 	//Primitives
-	IntData    LogData = "int"
-	UintData   LogData = "uint"
-	FloatData  LogData = "float"
-	BoolData   LogData = "bool"
-	StringData LogData = "string"
-	ByteData   LogData = "byte"
-	ErrorData  LogData = "error"
+	TypeInt    LogData = "int"
+	TypeUint   LogData = "uint"
+	TypeFloat  LogData = "float"
+	TypeBool   LogData = "bool"
+	TypeString LogData = "string"
+	TypeByte   LogData = "byte"
+	TypeError  LogData = "error"
 
 	//Requests
-	RequestBodyData  LogData = "request body"
-	ResponseData     LogData = "response"
-	ResponseBodyData LogData = "response body"
-	QueryParamData   LogData = "query param"
+	TypeRequest      LogData = "request"
+	TypeRequestBody  LogData = "request body"
+	TypeResponse     LogData = "response"
+	TypeResponseBody LogData = "response body"
+	TypeQueryParam   LogData = "query param"
 
 	//Auth
-	TokenData      LogData = "token"
-	ClaimsData     LogData = "claims"
-	ClaimData      LogData = "claim"
-	ScopeData      LogData = "scope"
-	PermissionData LogData = "permission"
+	TypeToken      LogData = "token"
+	TypeClaims     LogData = "claims"
+	TypeClaim      LogData = "claim"
+	TypeScope      LogData = "scope"
+	TypePermission LogData = "permission"
 
 	//Actions
 	InitializeAction LogAction = "initializing"
 	ComputeAction    LogAction = "computing"
 	RegisterAction   LogAction = "registering"
+	StartAction      LogAction = "starting"
+	CommitAction     LogAction = "committing"
 
 	//Encryption
 	EncryptAction LogAction = "entrypting"
