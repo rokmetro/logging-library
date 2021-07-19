@@ -91,7 +91,7 @@ func ActionMessage(status logActionStatus, action LogAction, dataType LogData, a
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
 func ActionError(action LogAction, dataType LogData, args logArgs) error {
-	message := ActionMessage(ErrorStatus, action, dataType, args)
+	message := ActionMessage(StatusError, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
@@ -102,7 +102,7 @@ func ActionError(action LogAction, dataType LogData, args logArgs) error {
 //	args: Any args that should be included in the message (nil if none)
 //	err: Error to wrap
 func WrapActionError(action LogAction, dataType LogData, args logArgs, err error) error {
-	message := ActionMessage(ErrorStatus, action, dataType, args)
+	message := ActionMessage(StatusError, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }

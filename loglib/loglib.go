@@ -325,7 +325,7 @@ func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction
 //	dataType: The data type that the action is occurring on
 //	err: Error message
 func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
-	message := ActionMessage(ErrorStatus, action, dataType, nil)
+	message := ActionMessage(StatusError, action, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -338,7 +338,7 @@ func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
 //	dataType: The data type that the action is occurring on
 //	err: Error message
 func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string {
-	message := ActionMessage(ErrorStatus, action, dataType, nil)
+	message := ActionMessage(StatusError, action, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -355,7 +355,7 @@ func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string 
 //	code: The HTTP response code to be set
 //	showDetails: Only provide 'msg' not 'err' in HTTP response when false
 func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) {
-	message := ActionMessage(ErrorStatus, action, dataType, args)
+	message := ActionMessage(StatusError, action, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -471,7 +471,7 @@ func (l *Log) WarnError(message string, err error) string {
 }
 
 //LogError prints the log at error level with given message and error
-//	Returns error message as string
+//	Returns combined error message as string
 func (l *Log) LogError(message string, err error) string {
 	msg := fmt.Sprintf("%s: %v", message, err)
 	if l == nil || l.logger == nil {

@@ -68,13 +68,13 @@ const (
 	Unimplemented string = "Unimplemented"
 
 	//Types
-	ValidStatus   logDataStatus = "Valid"
-	FoundStatus   logDataStatus = "Found"
-	InvalidStatus logDataStatus = "Invalid"
-	MissingStatus logDataStatus = "Missing"
+	StatusValid   logDataStatus = "Valid"
+	StatusInvalid logDataStatus = "Invalid"
+	StatusFound   logDataStatus = "Found"
+	StatusMissing logDataStatus = "Missing"
 
-	SuccessStatus logActionStatus = "Success"
-	ErrorStatus   logActionStatus = "Error"
+	StatusSuccess logActionStatus = "Success"
+	StatusError   logActionStatus = "Error"
 
 	//Data
 	TypeArg         LogData = "arg"
@@ -104,45 +104,45 @@ const (
 	TypePermission LogData = "permission"
 
 	//Actions
-	InitializeAction LogAction = "initializing"
-	ComputeAction    LogAction = "computing"
-	RegisterAction   LogAction = "registering"
-	StartAction      LogAction = "starting"
-	CommitAction     LogAction = "committing"
+	ActionInitialize LogAction = "initializing"
+	ActionCompute    LogAction = "computing"
+	ActionRegister   LogAction = "registering"
+	ActionStart      LogAction = "starting"
+	ActionCommit     LogAction = "committing"
 
-	//Encryption
-	EncryptAction LogAction = "entrypting"
-	DecryptAction LogAction = "decrypting"
+	//Encryption Actions
+	ActionEncrypt LogAction = "encrypting"
+	ActionDecrypt LogAction = "decrypting"
 
 	//Request/Response Actions
-	SendAction LogAction = "sending"
-	ReadAction LogAction = "reading"
+	ActionSend LogAction = "sending"
+	ActionRead LogAction = "reading"
 
 	//Encode Actions
-	ParseAction  LogAction = "parsing"
-	EncodeAction LogAction = "encoding"
-	DecodeAction LogAction = "decoding"
+	ActionParse  LogAction = "parsing"
+	ActionEncode LogAction = "encoding"
+	ActionDecode LogAction = "decoding"
 
 	//Marshal Actions
-	MarshalAction   LogAction = "marshalling"
-	UnmarshalAction LogAction = "unmarshalling"
-	ValidateAction  LogAction = "validating"
-	CastAction      LogAction = "casting to"
+	ActionMarshal   LogAction = "marshalling"
+	ActionUnmarshal LogAction = "unmarshalling"
+	ActionValidate  LogAction = "validating"
+	ActionCast      LogAction = "casting to"
 
 	//Cache Actions
-	CacheAction     LogAction = "caching"
-	LoadCacheAction LogAction = "loading cached"
+	ActionCache     LogAction = "caching"
+	ActionLoadCache LogAction = "loading cached"
 
 	//Operation Actions
-	GetAction    LogAction = "getting"
-	CreateAction LogAction = "creating"
-	UpdateAction LogAction = "updating"
-	DeleteAction LogAction = "deleting"
+	ActionGet    LogAction = "getting"
+	ActionCreate LogAction = "creating"
+	ActionUpdate LogAction = "updating"
+	ActionDelete LogAction = "deleting"
 
 	//Storage Actions
-	FindAction    LogAction = "finding"
-	InsertAction  LogAction = "inserting"
-	ReplaceAction LogAction = "replacing"
-	SaveAction    LogAction = "saving"
-	CountAction   LogAction = "counting"
+	ActionFind    LogAction = "finding"
+	ActionInsert  LogAction = "inserting"
+	ActionReplace LogAction = "replacing"
+	ActionSave    LogAction = "saving"
+	ActionCount   LogAction = "counting"
 )
