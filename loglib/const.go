@@ -50,6 +50,23 @@ func (s StringArgs) String() string {
 
 type logLevel string
 
+func LogLevelFromString(level string) *logLevel {
+	var lLevel logLevel
+
+	switch level {
+	case string(Debug):
+		lLevel = Debug
+	case string(Info):
+		lLevel = Info
+	case string(Warn):
+		lLevel = Warn
+	case string(Error):
+		lLevel = Error
+	}
+
+	return &lLevel
+}
+
 type logDataStatus string
 type logActionStatus string
 
