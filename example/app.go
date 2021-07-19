@@ -66,6 +66,7 @@ func NewWebAdapter(logger *log.Logger) WebAdapter {
 func main() {
 	//Instantiate a logger for each service
 	var logger = log.NewLogger("health-service", nil)
+	logger.SetLevel(log.Debug)
 
 	var random = 1234
 	logger.Infof("Starting service: %d", random)
