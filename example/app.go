@@ -34,8 +34,7 @@ func (we WebAdapter) test(l *log.Log, w http.ResponseWriter, req *http.Request) 
 
 	l.Info("Success")
 
-	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte("Success"))
+	l.RequestSuccess(w)
 }
 
 func checkParam(param string) error {
@@ -92,7 +91,7 @@ func CallTest() (*http.Response, error) {
 	req.Header.Set("span-id", "4313")
 
 	q := req.URL.Query()
-	q.Add("param", "test2")
+	q.Add("param", "test")
 	req.URL.RawQuery = q.Encode()
 
 	fmt.Println(req.URL.String())
