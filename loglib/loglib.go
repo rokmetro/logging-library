@@ -360,6 +360,19 @@ func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string 
 	return l.LogError(message, err)
 }
 
+//RequestSuccessAction sets the provided success action message as the HTTP response, sets standard headers, and stores the message
+// 	to the log context
+//	Params:
+//		w: The http response writer for the active request
+//		action: The action that is occurring
+//		dataType: The data type that the action is occurring on
+//		args: Any args that should be included in the message (nil if none)
+//		msg: The success message
+func (l *Log) RequestSuccessAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs) {
+	message := ActionMessage(StatusSuccess, action, dataType, args)
+	l.RequestSuccessMessage(w, message)
+}
+
 //RequestErrorAction logs an action message and error and sets it as the HTTP response
 //	w: The http response writer for the active request
 //	action: The action that is occurring
@@ -367,7 +380,7 @@ func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string 
 //	args: Any args that should be included in the message (nil if none)
 //	err: The error received from the application
 //	code: The HTTP response code to be set
-//	showDetails: Only provide 'msg' not 'err' in HTTP response when false
+//	showDetails: Only generated message not 'err' in HTTP response when false
 func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) {
 	message := ActionMessage(StatusError, action, dataType, args)
 
@@ -531,28 +544,66 @@ func (l *Log) Errorf(format string, args ...interface{}) {
 	l.logger.withFields(requestFields).Errorf(format, args...)
 }
 
+//RequestSuccess sets "Success" as the HTTP response, sets standard headers, and stores the message
+// 	to the log context
+//	Params:
+//		w: The http response writer for the active request
+//		msg: The success message
+func (l *Log) RequestSuccess(w http.ResponseWriter) {
+	l.SetContext("status_code", http.StatusOK)
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Success"))
+}
+
+//RequestSuccess sets the provided success message as the HTTP response, sets standard headers, and stores the message
+// 	to the log context
+//	Params:
+//		w: The http response writer for the active request
+//		msg: The success message
+func (l *Log) RequestSuccessMessage(w http.ResponseWriter, message string) {
+	l.SetContext("status_code", http.StatusOK)
+	l.SetContext("success", message)
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(message))
+}
+
+//RequestSuccessJSON sets the provided JSON as the HTTP response body, sets standard headers, and stores the request status
+// 	to the log context
+//	Params:
+//		w: The http response writer for the active request
+//		responseJSON: JSON encoded response data
+func (l *Log) RequestSuccessJSON(w http.ResponseWriter, responseJSON []byte) {
+	l.SetContext("status_code", http.StatusOK)
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(responseJSON)
+}
+
 //RequestError logs the provided message and error and sets it as the HTTP response
 //	Params:
 //		w: The http response writer for the active request
-//		msg: The error message
+//		message: The error message
 //		err: The error received from the application
 //		code: The HTTP response code to be set
-//		showDetails: Only provide 'msg' not 'err' in HTTP response when false
-func (l *Log) RequestError(w http.ResponseWriter, msg string, err error, code int, showDetails bool) {
+//		showDetails: Only provide 'message' not 'err' in HTTP response when false
+func (l *Log) RequestError(w http.ResponseWriter, message string, err error, code int, showDetails bool) {
 	l.addLayer(1)
 	defer l.resetLayer()
 
 	l.SetContext("status_code", code)
 
-	msg = fmt.Sprintf("%d - %s", code, msg)
-	detailMsg := l.LogError(msg, err)
+	message = fmt.Sprintf("%d - %s", code, message)
+	detailMsg := l.LogError(message, err)
 	if !showDetails {
-		msg = detailMsg
+		message = detailMsg
 	}
-	http.Error(w, msg, code)
+	http.Error(w, message, code)
 }
-
-//TODO: More error interfaces to be added
 
 //AddContext adds any relevant unstructured data to context map
 // If the provided key already exists in the context, an error is returned

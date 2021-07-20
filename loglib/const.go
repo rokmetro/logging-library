@@ -96,6 +96,7 @@ const (
 	//Data
 	TypeArg         LogData = "arg"
 	TypeTransaction LogData = "transaction"
+	TypeResult      LogData = "result"
 
 	//Primitives
 	TypeInt    LogData = "int"
@@ -124,6 +125,7 @@ const (
 	ActionInitialize LogAction = "initializing"
 	ActionCompute    LogAction = "computing"
 	ActionRegister   LogAction = "registering"
+	ActionDeregister LogAction = "deregistering"
 	ActionStart      LogAction = "starting"
 	ActionCommit     LogAction = "committing"
 
