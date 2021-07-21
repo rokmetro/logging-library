@@ -8,6 +8,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type HttpResponse struct {
+	ResponseCode int
+	Headers      map[string][]string
+	Body         []byte
+}
+
+//NewHttpResponse generates an HttpResponse with the provided data
+func NewHttpResponse(body []byte, headers map[string]string, code int) HttpResponse {
+	preparedHeaders := make(map[string][]string, len(headers))
+	for key, value := range headers {
+		preparedHeaders[key] = []string{value}
+	}
+
+	return HttpResponse{ResponseCode: code, Headers: preparedHeaders, Body: body}
+}
+
+//NewHttpResponse generates an HttpResponse with the correct headers for an error string
+func NewErrorHttpResponse(body string, code int) HttpResponse {
+	headers := map[string][]string{}
+	headers["Content-Type"] = []string{"text/plain; charset=utf-8"}
+	headers["X-Content-Type-Options"] = []string{"nosniff"}
+
+	return HttpResponse{ResponseCode: code, Headers: headers, Body: []byte(body)}
+}
+
 type Fields map[string]interface{}
 
 func (f Fields) ToMap() map[string]interface{} {
@@ -308,6 +333,22 @@ func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, data
 	l.RequestError(w, message, err, code, showDetails)
 }
 
+//HttpResponseErrorData logs a data message and error and generates an HttpResponse
+//	status: The status of the data
+//	dataType: The data type
+//	args: Any args that should be included in the message (nil if none)
+//	err: The error received from the application
+//	code: The HTTP response code to be set
+//	showDetails: Only provide 'msg' not 'err' in HTTP response when false
+func (l *Log) HttpResponseErrorData(status logDataStatus, dataType LogData, args logArgs, err error, code int, showDetails bool) HttpResponse {
+	message := DataMessage(status, dataType, args)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	return l.HttpResponseError(message, err, code, showDetails)
+}
+
 //LogAction logs and returns an action message at the designated level
 //	level: The log level (Info, Debug, Warn, Error)
 //	status: The status of the action
@@ -388,6 +429,22 @@ func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataTy
 	defer l.resetLayer()
 
 	l.RequestError(w, message, err, code, showDetails)
+}
+
+//HttpResponseErrorAction logs an action message and error and generates an HttpResponse
+//	action: The action that is occurring
+//	dataType: The data type
+//	args: Any args that should be included in the message (nil if none)
+//	err: The error received from the application
+//	code: The HTTP response code to be set
+//	showDetails: Only generated message not 'err' in HTTP response when false
+func (l *Log) HttpResponseErrorAction(action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) HttpResponse {
+	message := ActionMessage(StatusError, action, dataType, args)
+
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	return l.HttpResponseError(message, err, code, showDetails)
 }
 
 //Info prints the log at info level with given message
@@ -603,6 +660,62 @@ func (l *Log) RequestError(w http.ResponseWriter, message string, err error, cod
 		message = detailMsg
 	}
 	http.Error(w, message, code)
+}
+
+//HttpResponseSuccess generates an HttpResponse with the message "Success", sets standard headers, and stores the status
+// 	to the log context
+func (l *Log) HttpResponseSuccess(w http.ResponseWriter) HttpResponse {
+	l.SetContext("status_code", http.StatusOK)
+
+	headers := map[string][]string{}
+	headers["Content-Type"] = []string{"text/plain"}
+	return HttpResponse{ResponseCode: http.StatusOK, Headers: headers, Body: []byte("Success")}
+}
+
+//HttpResponseSuccess generates an HttpResponse with the provided success message, sets standard headers, and stores the message
+// 	and status to the log context
+//	Params:
+//		msg: The success message
+func (l *Log) HttpResponseSuccessMessage(w http.ResponseWriter, message string) HttpResponse {
+	l.SetContext("status_code", http.StatusOK)
+	l.SetContext("success", message)
+
+	headers := map[string][]string{}
+	headers["Content-Type"] = []string{"text/plain"}
+	return HttpResponse{ResponseCode: http.StatusOK, Headers: headers, Body: []byte(message)}
+}
+
+//HttpResponseSuccessJSON generates an HttpResponse with the provided JSON as the HTTP response body, sets standard headers,
+// 	and stores the status to the log context
+//	Params:
+//		json: JSON encoded response data
+func (l *Log) HttpResponseSuccessJSON(json []byte) HttpResponse {
+	l.SetContext("status_code", http.StatusOK)
+
+	headers := map[string][]string{}
+	headers["Content-Type"] = []string{"application/json; charset=utf-8"}
+	return HttpResponse{ResponseCode: http.StatusOK, Headers: headers, Body: json}
+}
+
+//HttpResponseError logs the provided message and error and generates an HttpResponse
+//	Params:
+//		message: The error message
+//		err: The error received from the application
+//		code: The HTTP response code to be set
+//		showDetails: Only provide 'message' not 'err' in HTTP response when false
+func (l *Log) HttpResponseError(message string, err error, code int, showDetails bool) HttpResponse {
+	l.addLayer(1)
+	defer l.resetLayer()
+
+	l.SetContext("status_code", code)
+
+	message = fmt.Sprintf("%d - %s", code, message)
+	detailMsg := l.LogError(message, err)
+	if !showDetails {
+		message = detailMsg
+	}
+
+	return NewErrorHttpResponse(message, code)
 }
 
 //AddContext adds any relevant unstructured data to context map
