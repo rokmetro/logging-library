@@ -408,7 +408,6 @@ func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string 
 //		action: The action that is occurring
 //		dataType: The data type that the action is occurring on
 //		args: Any args that should be included in the message (nil if none)
-//		msg: The success message
 func (l *Log) RequestSuccessAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs) {
 	message := ActionMessage(StatusSuccess, action, dataType, args)
 	l.RequestSuccessMessage(w, message)
@@ -429,6 +428,17 @@ func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataTy
 	defer l.resetLayer()
 
 	l.RequestError(w, message, err, code, showDetails)
+}
+
+//HttpResponseSuccessAction generates an HttpResponse with the provided success action message, sets standard headers,
+// 	and stores the message to the log context
+//	Params:
+//		action: The action that is occurring
+//		dataType: The data type that the action is occurring on
+//		args: Any args that should be included in the message (nil if none)
+func (l *Log) HttpResponseSuccessAction(action LogAction, dataType LogData, args logArgs) HttpResponse {
+	message := ActionMessage(StatusSuccess, action, dataType, args)
+	return l.HttpResponseSuccessMessage(message)
 }
 
 //HttpResponseErrorAction logs an action message and error and generates an HttpResponse
@@ -664,7 +674,7 @@ func (l *Log) RequestError(w http.ResponseWriter, message string, err error, cod
 
 //HttpResponseSuccess generates an HttpResponse with the message "Success", sets standard headers, and stores the status
 // 	to the log context
-func (l *Log) HttpResponseSuccess(w http.ResponseWriter) HttpResponse {
+func (l *Log) HttpResponseSuccess() HttpResponse {
 	l.SetContext("status_code", http.StatusOK)
 
 	headers := map[string][]string{}
@@ -676,7 +686,7 @@ func (l *Log) HttpResponseSuccess(w http.ResponseWriter) HttpResponse {
 // 	and status to the log context
 //	Params:
 //		msg: The success message
-func (l *Log) HttpResponseSuccessMessage(w http.ResponseWriter, message string) HttpResponse {
+func (l *Log) HttpResponseSuccessMessage(message string) HttpResponse {
 	l.SetContext("status_code", http.StatusOK)
 	l.SetContext("success", message)
 
