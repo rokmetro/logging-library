@@ -271,7 +271,7 @@ func (l *Log) SetHeaders(r *http.Request) {
 //	dataType: The data type
 //	args: Any args that should be included in the message (nil if none)
 func (l *Log) LogData(level logLevel, status logDataStatus, dataType LogData, args logArgs) string {
-	msg := DataMessage(status, dataType, args)
+	msg := MessageData(status, dataType, args)
 	l.addLayer(1)
 
 	switch level {
@@ -295,7 +295,7 @@ func (l *Log) LogData(level logLevel, status logDataStatus, dataType LogData, ar
 //	dataType: The data type
 //	err: Error message
 func (l *Log) WarnData(status logDataStatus, dataType LogData, err error) string {
-	message := DataMessage(status, dataType, nil)
+	message := MessageData(status, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -308,7 +308,7 @@ func (l *Log) WarnData(status logDataStatus, dataType LogData, err error) string
 //	dataType: The data type
 //	err: Error message
 func (l *Log) ErrorData(status logDataStatus, dataType LogData, err error) string {
-	message := DataMessage(status, dataType, nil)
+	message := MessageData(status, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -325,7 +325,7 @@ func (l *Log) ErrorData(status logDataStatus, dataType LogData, err error) strin
 //	code: The HTTP response code to be set
 //	showDetails: Only provide 'msg' not 'err' in HTTP response when false
 func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, dataType LogData, args logArgs, err error, code int, showDetails bool) {
-	message := DataMessage(status, dataType, args)
+	message := MessageData(status, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -341,7 +341,7 @@ func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, data
 //	code: The HTTP response code to be set
 //	showDetails: Only provide 'msg' not 'err' in HTTP response when false
 func (l *Log) HttpResponseErrorData(status logDataStatus, dataType LogData, args logArgs, err error, code int, showDetails bool) HttpResponse {
-	message := DataMessage(status, dataType, args)
+	message := MessageData(status, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -356,7 +356,7 @@ func (l *Log) HttpResponseErrorData(status logDataStatus, dataType LogData, args
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
 func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
-	msg := ActionMessage(status, action, dataType, args)
+	msg := MessageAction(status, action, dataType, args)
 	l.addLayer(1)
 
 	switch level {
@@ -380,7 +380,7 @@ func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction
 //	dataType: The data type that the action is occurring on
 //	err: Error message
 func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
-	message := ActionMessage(StatusError, action, dataType, nil)
+	message := MessageAction(StatusError, action, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -393,7 +393,7 @@ func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
 //	dataType: The data type that the action is occurring on
 //	err: Error message
 func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string {
-	message := ActionMessage(StatusError, action, dataType, nil)
+	message := MessageAction(StatusError, action, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -409,7 +409,7 @@ func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string 
 //		dataType: The data type that the action is occurring on
 //		args: Any args that should be included in the message (nil if none)
 func (l *Log) RequestSuccessAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs) {
-	message := ActionMessage(StatusSuccess, action, dataType, args)
+	message := MessageAction(StatusSuccess, action, dataType, args)
 	l.RequestSuccessMessage(w, message)
 }
 
@@ -422,7 +422,7 @@ func (l *Log) RequestSuccessAction(w http.ResponseWriter, action LogAction, data
 //	code: The HTTP response code to be set
 //	showDetails: Only generated message not 'err' in HTTP response when false
 func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) {
-	message := ActionMessage(StatusError, action, dataType, args)
+	message := MessageAction(StatusError, action, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -437,7 +437,7 @@ func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataTy
 //		dataType: The data type that the action is occurring on
 //		args: Any args that should be included in the message (nil if none)
 func (l *Log) HttpResponseSuccessAction(action LogAction, dataType LogData, args logArgs) HttpResponse {
-	message := ActionMessage(StatusSuccess, action, dataType, args)
+	message := MessageAction(StatusSuccess, action, dataType, args)
 	return l.HttpResponseSuccessMessage(message)
 }
 
@@ -449,7 +449,7 @@ func (l *Log) HttpResponseSuccessAction(action LogAction, dataType LogData, args
 //	code: The HTTP response code to be set
 //	showDetails: Only generated message not 'err' in HTTP response when false
 func (l *Log) HttpResponseErrorAction(action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) HttpResponse {
-	message := ActionMessage(StatusError, action, dataType, args)
+	message := MessageAction(StatusError, action, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -666,7 +666,7 @@ func (l *Log) RequestError(w http.ResponseWriter, message string, err error, cod
 
 	message = fmt.Sprintf("%d - %s", code, message)
 	detailMsg := l.LogError(message, err)
-	if !showDetails {
+	if showDetails {
 		message = detailMsg
 	}
 	http.Error(w, message, code)
@@ -721,7 +721,7 @@ func (l *Log) HttpResponseError(message string, err error, code int, showDetails
 
 	message = fmt.Sprintf("%d - %s", code, message)
 	detailMsg := l.LogError(message, err)
-	if !showDetails {
+	if showDetails {
 		message = detailMsg
 	}
 

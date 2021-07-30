@@ -32,11 +32,11 @@ func WrapErrorf(format string, err error, args ...interface{}) error {
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }
 
-//DataMessage generates a message string for a data element
+//MessageData generates a message string for a data element
 //	status: The status of the data
 //	dataType: The data type
 //	args: Any args that should be included in the message (nil if none)
-func DataMessage(status logDataStatus, dataType LogData, args logArgs) string {
+func MessageData(status logDataStatus, dataType LogData, args logArgs) string {
 	argStr := ""
 	if args != nil {
 		argStr = args.String()
@@ -48,33 +48,33 @@ func DataMessage(status logDataStatus, dataType LogData, args logArgs) string {
 	return fmt.Sprintf("%s %s%s", status, dataType, argStr)
 }
 
-//DataError generates an error for a data element
+//ErrorData generates an error for a data element
 //	status: The status of the data
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func DataError(status logDataStatus, dataType LogData, args logArgs) error {
-	message := DataMessage(status, dataType, args)
+func ErrorData(status logDataStatus, dataType LogData, args logArgs) error {
+	message := MessageData(status, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
 
-//WrapDataError wraps an error for a data element
+//WrapErrorData wraps an error for a data element
 //	status: The status of the data
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
 //  err: Error to wrap
-func WrapDataError(status logDataStatus, dataType LogData, args logArgs, err error) error {
-	message := DataMessage(status, dataType, args)
+func WrapErrorData(status logDataStatus, dataType LogData, args logArgs, err error) error {
+	message := MessageData(status, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
 
-//ActionMessage generates a message string for an action
+//MessageAction generates a message string for an action
 //	status: The status of the action
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ActionMessage(status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
+func MessageAction(status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
 	argStr := ""
 	if args != nil {
 		argStr = args.String()
@@ -86,23 +86,23 @@ func ActionMessage(status logActionStatus, action LogAction, dataType LogData, a
 	return fmt.Sprintf("%s %s %s%s", status, action, dataType, argStr)
 }
 
-//ActionError generates an error for an action
+//ErrorAction generates an error for an action
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ActionError(action LogAction, dataType LogData, args logArgs) error {
-	message := ActionMessage(StatusError, action, dataType, args)
+func ErrorAction(action LogAction, dataType LogData, args logArgs) error {
+	message := MessageAction(StatusError, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
 
-//WrapActionError wraps an error for an action
+//WrapErrorAction wraps an error for an action
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
 //	err: Error to wrap
-func WrapActionError(action LogAction, dataType LogData, args logArgs, err error) error {
-	message := ActionMessage(StatusError, action, dataType, args)
+func WrapErrorAction(action LogAction, dataType LogData, args logArgs, err error) error {
+	message := MessageAction(StatusError, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }

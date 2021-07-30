@@ -42,7 +42,7 @@ func checkParam(param string) error {
 		return nil
 	}
 
-	return log.DataError(log.StatusInvalid, log.TypeArg, &log.FieldArgs{"param": param})
+	return log.ErrorData(log.StatusInvalid, log.TypeArg, &log.FieldArgs{"param": param})
 }
 
 // wrapFunc provides a standard wrapper that performs request logging
