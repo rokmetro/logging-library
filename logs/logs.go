@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/rokmetro/logging-library/errors"
 	"github.com/rokmetro/logging-library/logutils"
 	"github.com/sirupsen/logrus"
 )
@@ -548,13 +549,15 @@ func (l *Log) Warnf(format string, args ...interface{}) {
 //WarnError prints the log at warn level with given message and error
 //	Returns error message as string
 func (l *Log) WarnError(message string, err error) string {
-	msg := fmt.Sprintf("%s: %v", message, err)
+	msg := fmt.Sprintf("%s: %s", message, errors.Root(err))
 	if l == nil || l.logger == nil {
 		return msg
 	}
 
 	requestFields := l.getRequestFields()
-	requestFields["error"] = err
+	if err != nil {
+		requestFields["error"] = err.Error()
+	}
 	l.logger.withFields(requestFields).Warn(message)
 	return msg
 }
@@ -562,13 +565,15 @@ func (l *Log) WarnError(message string, err error) string {
 //LogError prints the log at error level with given message and error
 //	Returns combined error message as string
 func (l *Log) LogError(message string, err error) string {
-	msg := fmt.Sprintf("%s: %v", message, err)
+	msg := fmt.Sprintf("%s: %s", message, errors.Root(err))
 	if l == nil || l.logger == nil {
 		return msg
 	}
 
 	requestFields := l.getRequestFields()
-	requestFields["error"] = err
+	if err != nil {
+		requestFields["error"] = err.Error()
+	}
 	l.logger.withFields(requestFields).Error(message)
 	return msg
 }
