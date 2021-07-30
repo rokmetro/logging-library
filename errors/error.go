@@ -54,7 +54,7 @@ func (e *Error) RootContext() string {
 	}
 	root := e.root.String()
 	if e.internal != nil {
-		root += ":" + e.internal.Error()
+		root += ": " + e.internal.Error()
 	}
 	return root
 }
