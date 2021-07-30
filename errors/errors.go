@@ -1,9 +1,10 @@
-package loglib
+package errors
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
+
+	"github.com/rokmetro/logging-library/logutils"
 )
 
 //NewError returns an error containing the provided message
@@ -32,28 +33,12 @@ func WrapErrorf(format string, err error, args ...interface{}) error {
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }
 
-//MessageData generates a message string for a data element
-//	status: The status of the data
-//	dataType: The data type
-//	args: Any args that should be included in the message (nil if none)
-func MessageData(status logDataStatus, dataType LogData, args logArgs) string {
-	argStr := ""
-	if args != nil {
-		argStr = args.String()
-		if argStr != "" {
-			argStr = ": " + argStr
-		}
-	}
-
-	return fmt.Sprintf("%s %s%s", status, dataType, argStr)
-}
-
 //ErrorData generates an error for a data element
 //	status: The status of the data
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ErrorData(status logDataStatus, dataType LogData, args logArgs) error {
-	message := MessageData(status, dataType, args)
+func ErrorData(status logutils.MessageDataStatus, dataType logutils.MessageDataType, args logutils.MessageArgs) error {
+	message := logutils.MessageData(status, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
@@ -63,35 +48,18 @@ func ErrorData(status logDataStatus, dataType LogData, args logArgs) error {
 //	dataType: The data type that the error is occurring on
 //	args: Any args that should be included in the message (nil if none)
 //  err: Error to wrap
-func WrapErrorData(status logDataStatus, dataType LogData, args logArgs, err error) error {
-	message := MessageData(status, dataType, args)
+func WrapErrorData(status logutils.MessageDataStatus, dataType logutils.MessageDataType, args logutils.MessageArgs, err error) error {
+	message := logutils.MessageData(status, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
-}
-
-//MessageAction generates a message string for an action
-//	status: The status of the action
-//	action: The action that is occurring
-//	dataType: The data type that the action is occurring on
-//	args: Any args that should be included in the message (nil if none)
-func MessageAction(status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
-	argStr := ""
-	if args != nil {
-		argStr = args.String()
-		if argStr != "" {
-			argStr = " for " + argStr
-		}
-	}
-
-	return fmt.Sprintf("%s %s %s%s", status, action, dataType, argStr)
 }
 
 //ErrorAction generates an error for an action
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func ErrorAction(action LogAction, dataType LogData, args logArgs) error {
-	message := MessageAction(StatusError, action, dataType, args)
+func ErrorAction(action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs) error {
+	message := logutils.MessageAction(logutils.StatusError, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s", getErrorPrevFuncName(), message)
 }
@@ -101,37 +69,13 @@ func ErrorAction(action LogAction, dataType LogData, args logArgs) error {
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
 //	err: Error to wrap
-func WrapErrorAction(action LogAction, dataType LogData, args logArgs, err error) error {
-	message := MessageAction(StatusError, action, dataType, args)
+func WrapErrorAction(action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs, err error) error {
+	message := logutils.MessageAction(logutils.StatusError, action, dataType, args)
 	message = strings.ToLower(message)
 	return fmt.Errorf("%s() %s: %v", getErrorPrevFuncName(), message, err)
 }
 
-func containsString(slice []string, val string) bool {
-	for _, v := range slice {
-		if val == v {
-			return true
-		}
-	}
-	return false
-}
-
 //getErrorPrevFuncName - fetches the previous function name for error functions
 func getErrorPrevFuncName() string {
-	return GetFuncName(4)
-}
-
-//getLogPrevFuncName - fetches the calling function name when logging
-//	layer: Number of internal library function calls above caller
-func getLogPrevFuncName(layer int) string {
-	return GetFuncName(5 + layer)
-}
-
-//GetFuncName fetches the name of a function caller based on the numFrames
-func GetFuncName(numFrames int) string {
-	pc := make([]uintptr, 15)
-	n := runtime.Callers(numFrames, pc)
-	frames := runtime.CallersFrames(pc[:n])
-	frame, _ := frames.Next()
-	return frame.Function
+	return logutils.GetFuncName(4)
 }

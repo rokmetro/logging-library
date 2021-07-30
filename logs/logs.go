@@ -1,10 +1,11 @@
-package loglib
+package logs
 
 import (
 	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/rokmetro/logging-library/logutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -31,12 +32,6 @@ func NewErrorHttpResponse(body string, code int) HttpResponse {
 	headers["X-Content-Type-Options"] = []string{"nosniff"}
 
 	return HttpResponse{ResponseCode: code, Headers: headers, Body: []byte(body)}
-}
-
-type Fields map[string]interface{}
-
-func (f Fields) ToMap() map[string]interface{} {
-	return f
 }
 
 //Logger struct defines a wrapper for a logger object
@@ -91,7 +86,7 @@ func (l *Logger) SetLevel(level logLevel) {
 	}
 }
 
-func (l *Logger) withFields(fields Fields) *Logger {
+func (l *Logger) withFields(fields logutils.Fields) *Logger {
 	return &Logger{entry: l.entry.WithFields(fields.ToMap())}
 }
 
@@ -113,7 +108,7 @@ func (l *Logger) Error(message string) {
 }
 
 //ErrorWithFields prints the log at error level with given fields and message
-func (l *Logger) ErrorWithFields(message string, fields Fields) {
+func (l *Logger) ErrorWithFields(message string, fields logutils.Fields) {
 	l.entry.WithFields(fields.ToMap()).Error(message)
 }
 
@@ -128,7 +123,7 @@ func (l *Logger) Info(message string) {
 }
 
 //InfoWithFields prints the log at info level with given fields and message
-func (l *Logger) InfoWithFields(message string, fields Fields) {
+func (l *Logger) InfoWithFields(message string, fields logutils.Fields) {
 	l.entry.WithFields(fields.ToMap()).Info(message)
 }
 
@@ -143,7 +138,7 @@ func (l *Logger) Debug(message string) {
 }
 
 //DebugWithFields prints the log at debug level with given fields and message
-func (l *Logger) DebugWithFields(message string, fields Fields) {
+func (l *Logger) DebugWithFields(message string, fields logutils.Fields) {
 	l.entry.WithFields(fields.ToMap()).Debug(message)
 }
 
@@ -158,7 +153,7 @@ func (l *Logger) Warn(message string) {
 }
 
 //WarnWithFields prints the log at warn level with given fields and message
-func (l *Logger) WarnWithFields(message string, fields Fields) {
+func (l *Logger) WarnWithFields(message string, fields logutils.Fields) {
 	l.entry.WithFields(fields.ToMap()).Warn(message)
 }
 
@@ -184,7 +179,7 @@ type Log struct {
 	traceID string
 	spanID  string
 	request RequestContext
-	context Fields
+	context logutils.Fields
 	layer   int
 }
 
@@ -194,7 +189,7 @@ func (l *Logger) NewLog(traceID string, request RequestContext) *Log {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, request, Fields{}, 0}
+	log := &Log{l, traceID, spanID, request, logutils.Fields{}, 0}
 	return log
 }
 
@@ -219,7 +214,7 @@ func (l *Logger) NewRequestLog(r *http.Request) *Log {
 	for key, value := range r.Header {
 		var logValue []string
 		//do not log sensitive information
-		if containsString(l.sensitiveHeaders, key) {
+		if logutils.ContainsString(l.sensitiveHeaders, key) {
 			logValue = append(logValue, "---")
 		} else {
 			logValue = value
@@ -229,7 +224,7 @@ func (l *Logger) NewRequestLog(r *http.Request) *Log {
 
 	request := RequestContext{Method: method, Path: path, Headers: headers, PrevSpanID: prevSpanID}
 
-	log := &Log{l, traceID, spanID, request, Fields{}, 0}
+	log := &Log{l, traceID, spanID, request, logutils.Fields{}, 0}
 	return log
 }
 
@@ -243,12 +238,12 @@ func (l *Log) addLayer(layer int) {
 
 //getRequestFields() populates a map with all the fields of a request
 //	layer: Number of function calls between caller and getRequestFields()
-func (l *Log) getRequestFields() Fields {
+func (l *Log) getRequestFields() logutils.Fields {
 	if l == nil {
-		return Fields{}
+		return logutils.Fields{}
 	}
 
-	fields := Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getLogPrevFuncName(l.layer)}
+	fields := logutils.Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getLogPrevFuncName(l.layer)}
 	l.resetLayer()
 
 	return fields
@@ -270,8 +265,8 @@ func (l *Log) SetHeaders(r *http.Request) {
 //	status: The status of the data
 //	dataType: The data type
 //	args: Any args that should be included in the message (nil if none)
-func (l *Log) LogData(level logLevel, status logDataStatus, dataType LogData, args logArgs) string {
-	msg := MessageData(status, dataType, args)
+func (l *Log) LogData(level logLevel, status logutils.MessageDataStatus, dataType logutils.MessageDataType, args logutils.MessageArgs) string {
+	msg := logutils.MessageData(status, dataType, args)
 	l.addLayer(1)
 
 	switch level {
@@ -294,8 +289,8 @@ func (l *Log) LogData(level logLevel, status logDataStatus, dataType LogData, ar
 //	status: The status of the data
 //	dataType: The data type
 //	err: Error message
-func (l *Log) WarnData(status logDataStatus, dataType LogData, err error) string {
-	message := MessageData(status, dataType, nil)
+func (l *Log) WarnData(status logutils.MessageDataStatus, dataType logutils.MessageDataType, err error) string {
+	message := logutils.MessageData(status, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -307,8 +302,8 @@ func (l *Log) WarnData(status logDataStatus, dataType LogData, err error) string
 //	status: The status of the data
 //	dataType: The data type
 //	err: Error message
-func (l *Log) ErrorData(status logDataStatus, dataType LogData, err error) string {
-	message := MessageData(status, dataType, nil)
+func (l *Log) ErrorData(status logutils.MessageDataStatus, dataType logutils.MessageDataType, err error) string {
+	message := logutils.MessageData(status, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -324,8 +319,8 @@ func (l *Log) ErrorData(status logDataStatus, dataType LogData, err error) strin
 //	err: The error received from the application
 //	code: The HTTP response code to be set
 //	showDetails: Only provide 'msg' not 'err' in HTTP response when false
-func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, dataType LogData, args logArgs, err error, code int, showDetails bool) {
-	message := MessageData(status, dataType, args)
+func (l *Log) RequestErrorData(w http.ResponseWriter, status logutils.MessageDataStatus, dataType logutils.MessageDataType, args logutils.MessageArgs, err error, code int, showDetails bool) {
+	message := logutils.MessageData(status, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -340,8 +335,8 @@ func (l *Log) RequestErrorData(w http.ResponseWriter, status logDataStatus, data
 //	err: The error received from the application
 //	code: The HTTP response code to be set
 //	showDetails: Only provide 'msg' not 'err' in HTTP response when false
-func (l *Log) HttpResponseErrorData(status logDataStatus, dataType LogData, args logArgs, err error, code int, showDetails bool) HttpResponse {
-	message := MessageData(status, dataType, args)
+func (l *Log) HttpResponseErrorData(status logutils.MessageDataStatus, dataType logutils.MessageDataType, args logutils.MessageArgs, err error, code int, showDetails bool) HttpResponse {
+	message := logutils.MessageData(status, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -355,8 +350,8 @@ func (l *Log) HttpResponseErrorData(status logDataStatus, dataType LogData, args
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	args: Any args that should be included in the message (nil if none)
-func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction, dataType LogData, args logArgs) string {
-	msg := MessageAction(status, action, dataType, args)
+func (l *Log) LogAction(level logLevel, status logutils.MessageActionStatus, action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs) string {
+	msg := logutils.MessageAction(status, action, dataType, args)
 	l.addLayer(1)
 
 	switch level {
@@ -379,8 +374,8 @@ func (l *Log) LogAction(level logLevel, status logActionStatus, action LogAction
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	err: Error message
-func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
-	message := MessageAction(StatusError, action, dataType, nil)
+func (l *Log) WarnAction(action logutils.MessageActionType, dataType logutils.MessageDataType, err error) string {
+	message := logutils.MessageAction(logutils.StatusError, action, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -392,8 +387,8 @@ func (l *Log) WarnAction(action LogAction, dataType LogData, err error) string {
 //	action: The action that is occurring
 //	dataType: The data type that the action is occurring on
 //	err: Error message
-func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string {
-	message := MessageAction(StatusError, action, dataType, nil)
+func (l *Log) ErrorAction(action logutils.MessageActionType, dataType logutils.MessageDataType, err error) string {
+	message := logutils.MessageAction(logutils.StatusError, action, dataType, nil)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -408,8 +403,8 @@ func (l *Log) ErrorAction(action LogAction, dataType LogData, err error) string 
 //		action: The action that is occurring
 //		dataType: The data type that the action is occurring on
 //		args: Any args that should be included in the message (nil if none)
-func (l *Log) RequestSuccessAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs) {
-	message := MessageAction(StatusSuccess, action, dataType, args)
+func (l *Log) RequestSuccessAction(w http.ResponseWriter, action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs) {
+	message := logutils.MessageAction(logutils.StatusSuccess, action, dataType, args)
 	l.RequestSuccessMessage(w, message)
 }
 
@@ -421,8 +416,8 @@ func (l *Log) RequestSuccessAction(w http.ResponseWriter, action LogAction, data
 //	err: The error received from the application
 //	code: The HTTP response code to be set
 //	showDetails: Only generated message not 'err' in HTTP response when false
-func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) {
-	message := MessageAction(StatusError, action, dataType, args)
+func (l *Log) RequestErrorAction(w http.ResponseWriter, action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs, err error, code int, showDetails bool) {
+	message := logutils.MessageAction(logutils.StatusError, action, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -436,8 +431,8 @@ func (l *Log) RequestErrorAction(w http.ResponseWriter, action LogAction, dataTy
 //		action: The action that is occurring
 //		dataType: The data type that the action is occurring on
 //		args: Any args that should be included in the message (nil if none)
-func (l *Log) HttpResponseSuccessAction(action LogAction, dataType LogData, args logArgs) HttpResponse {
-	message := MessageAction(StatusSuccess, action, dataType, args)
+func (l *Log) HttpResponseSuccessAction(action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs) HttpResponse {
+	message := logutils.MessageAction(logutils.StatusSuccess, action, dataType, args)
 	return l.HttpResponseSuccessMessage(message)
 }
 
@@ -448,8 +443,8 @@ func (l *Log) HttpResponseSuccessAction(action LogAction, dataType LogData, args
 //	err: The error received from the application
 //	code: The HTTP response code to be set
 //	showDetails: Only generated message not 'err' in HTTP response when false
-func (l *Log) HttpResponseErrorAction(action LogAction, dataType LogData, args logArgs, err error, code int, showDetails bool) HttpResponse {
-	message := MessageAction(StatusError, action, dataType, args)
+func (l *Log) HttpResponseErrorAction(action logutils.MessageActionType, dataType logutils.MessageDataType, args logutils.MessageArgs, err error, code int, showDetails bool) HttpResponse {
+	message := logutils.MessageAction(logutils.StatusError, action, dataType, args)
 
 	l.addLayer(1)
 	defer l.resetLayer()
@@ -468,7 +463,7 @@ func (l *Log) Info(message string) {
 }
 
 //InfoWithDetails prints the log at info level with given fields and message
-func (l *Log) InfoWithDetails(message string, details Fields) {
+func (l *Log) InfoWithDetails(message string, details logutils.Fields) {
 	if l == nil || l.logger == nil {
 		return
 	}
@@ -499,7 +494,7 @@ func (l *Log) Debug(message string) {
 }
 
 //DebugWithDetails prints the log at debug level with given fields and message
-func (l *Log) DebugWithDetails(message string, details Fields) {
+func (l *Log) DebugWithDetails(message string, details logutils.Fields) {
 	if l == nil || l.logger == nil {
 		return
 	}
@@ -530,7 +525,7 @@ func (l *Log) Warn(message string) {
 }
 
 //WarnWithDetails prints the log at warn level with given details and message
-func (l *Log) WarnWithDetails(message string, details Fields) {
+func (l *Log) WarnWithDetails(message string, details logutils.Fields) {
 	if l == nil || l.logger == nil {
 		return
 	}
@@ -590,7 +585,7 @@ func (l *Log) Error(message string) {
 }
 
 //ErrorWithDetails prints the log at error level with given details and message
-func (l *Log) ErrorWithDetails(message string, details Fields) {
+func (l *Log) ErrorWithDetails(message string, details logutils.Fields) {
 	if l == nil || l.logger == nil {
 		return
 	}
@@ -768,4 +763,10 @@ func (l *Log) RequestComplete() {
 	fields := l.getRequestFields()
 	fields["context"] = l.context
 	l.logger.InfoWithFields("Request Complete", fields)
+}
+
+//getLogPrevFuncName - fetches the calling function name when logging
+//	layer: Number of internal library function calls above caller
+func getLogPrevFuncName(layer int) string {
+	return logutils.GetFuncName(5 + layer)
 }
