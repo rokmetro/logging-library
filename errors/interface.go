@@ -111,7 +111,7 @@ func Root(err error) string {
 		return ""
 	}
 	if e, ok := err.(*Error); ok {
-		e.Root()
+		return e.Root()
 	}
 	return err.Error()
 }
