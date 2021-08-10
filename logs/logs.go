@@ -64,6 +64,15 @@ func (h HttpRequestProperties) Match(r *http.Request) bool {
 	return true
 }
 
+//NewAwsHealthCheckHttpRequestProperties creates an HttpRequestProperties object for a standard AWS ELB health checker
+//	Path: The path that the health checks are performed on. If empty, "/version" is used as the default value.
+func NewAwsHealthCheckHttpRequestProperties(path string) HttpRequestProperties {
+	if path == "" {
+		path = "/version"
+	}
+	return HttpRequestProperties{Method: "GET", Path: path, UserAgent: "ELB-HealthChecker/2.0"}
+}
+
 //Logger struct defines a wrapper for a logger object
 type Logger struct {
 	entry            *logrus.Entry
@@ -818,10 +827,11 @@ func (l *Log) RequestComplete() {
 		return
 	}
 
+	hasLogged := l.hasLogged
 	fields := l.getRequestFields()
 
 	if l.suppress {
-		if l.hasLogged {
+		if hasLogged {
 			fields["request"] = l.request
 		} else {
 			return
