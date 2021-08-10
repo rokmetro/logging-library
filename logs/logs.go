@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+//HttpResponse is an entity which contains the data to be sent in an HTTP response
 type HttpResponse struct {
 	ResponseCode int
 	Headers      map[string][]string
@@ -35,10 +36,39 @@ func NewErrorHttpResponse(body string, code int) HttpResponse {
 	return HttpResponse{ResponseCode: code, Headers: headers, Body: []byte(body)}
 }
 
+//HttpRequestProperties is an entity which contains the properties of an HTTP request
+type HttpRequestProperties struct {
+	Method     string
+	Path       string
+	RemoteAddr string
+	UserAgent  string
+}
+
+func (h HttpRequestProperties) Match(r *http.Request) bool {
+	if h.Method != "" && h.Method != r.Method {
+		return false
+	}
+
+	if h.Path != "" && h.Path != r.URL.Path {
+		return false
+	}
+
+	if h.RemoteAddr != "" && h.RemoteAddr != r.RemoteAddr {
+		return false
+	}
+
+	if h.UserAgent != "" && h.UserAgent != r.UserAgent() {
+		return false
+	}
+
+	return true
+}
+
 //Logger struct defines a wrapper for a logger object
 type Logger struct {
 	entry            *logrus.Entry
 	sensitiveHeaders []string
+	suppressRequests []HttpRequestProperties
 }
 
 //LoggerOpts provides configuration options for the Logger type
@@ -48,6 +78,13 @@ type LoggerOpts struct {
 	//SensitiveHeaders: A list of any headers that contain sensitive information and should not be logged
 	//				    Defaults: Authorization, Csrf
 	SensitiveHeaders []string
+	//SuppressRequests: A list of HttpRequestProperties of requests that should not be logged
+	//					Any "Warn" or higher severity logs will still be logged.
+	//					This is useful to prevent info logs from health checks and similar requests from
+	//					flooding the logs
+	//					All specified fields in the provided HttpRequestProperties must match for the logs
+	//					to be suppressed. Empty fields will be ignored.
+	SuppressRequests []HttpRequestProperties
 }
 
 //NewLogger is constructor for a logger object with initial configuration at the service level
@@ -57,6 +94,7 @@ type LoggerOpts struct {
 func NewLogger(serviceName string, opts *LoggerOpts) *Logger {
 	var baseLogger = logrus.New()
 	sensitiveHeaders := []string{"Authorization", "Csrf"}
+	var suppressRequests []HttpRequestProperties
 
 	if opts != nil {
 		if opts.JsonFmt {
@@ -66,10 +104,11 @@ func NewLogger(serviceName string, opts *LoggerOpts) *Logger {
 		}
 
 		sensitiveHeaders = append(sensitiveHeaders, opts.SensitiveHeaders...)
+		suppressRequests = opts.SuppressRequests
 	}
 
 	standardFields := logrus.Fields{"service_name": serviceName} //All common fields for logs of a given service
-	contextLogger := &Logger{entry: baseLogger.WithFields(standardFields), sensitiveHeaders: sensitiveHeaders}
+	contextLogger := &Logger{entry: baseLogger.WithFields(standardFields), sensitiveHeaders: sensitiveHeaders, suppressRequests: suppressRequests}
 	return contextLogger
 }
 
@@ -176,12 +215,14 @@ func (r RequestContext) String() string {
 
 //Log struct defines a log object of a request
 type Log struct {
-	logger  *Logger
-	traceID string
-	spanID  string
-	request RequestContext
-	context logutils.Fields
-	layer   int
+	logger    *Logger
+	traceID   string
+	spanID    string
+	request   RequestContext
+	context   logutils.Fields
+	layer     int
+	suppress  bool
+	hasLogged bool
 }
 
 //NewLog is a constructor for a log object
@@ -190,7 +231,7 @@ func (l *Logger) NewLog(traceID string, request RequestContext) *Log {
 		traceID = uuid.New().String()
 	}
 	spanID := uuid.New().String()
-	log := &Log{l, traceID, spanID, request, logutils.Fields{}, 0}
+	log := &Log{l, traceID, spanID, request, logutils.Fields{}, 0, false, false}
 	return log
 }
 
@@ -225,7 +266,15 @@ func (l *Logger) NewRequestLog(r *http.Request) *Log {
 
 	request := RequestContext{Method: method, Path: path, Headers: headers, PrevSpanID: prevSpanID}
 
-	log := &Log{l, traceID, spanID, request, logutils.Fields{}, 0}
+	suppress := false
+	for _, props := range l.suppressRequests {
+		if props.Match(r) {
+			suppress = true
+			break
+		}
+	}
+
+	log := &Log{l, traceID, spanID, request, logutils.Fields{}, 0, suppress, false}
 	return log
 }
 
@@ -244,7 +293,11 @@ func (l *Log) getRequestFields() logutils.Fields {
 		return logutils.Fields{}
 	}
 
+	l.hasLogged = true
 	fields := logutils.Fields{"trace_id": l.traceID, "span_id": l.spanID, "function_name": getLogPrevFuncName(l.layer)}
+	if l.suppress {
+		fields["suppress"] = true
+	}
 	l.resetLayer()
 
 	return fields
@@ -455,7 +508,7 @@ func (l *Log) HttpResponseErrorAction(action logutils.MessageActionType, dataTyp
 
 //Info prints the log at info level with given message
 func (l *Log) Info(message string) {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -465,7 +518,7 @@ func (l *Log) Info(message string) {
 
 //InfoWithDetails prints the log at info level with given fields and message
 func (l *Log) InfoWithDetails(message string, details logutils.Fields) {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -476,7 +529,7 @@ func (l *Log) InfoWithDetails(message string, details logutils.Fields) {
 
 //Infof prints the log at info level with given formatted string
 func (l *Log) Infof(format string, args ...interface{}) {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -486,7 +539,7 @@ func (l *Log) Infof(format string, args ...interface{}) {
 
 //Debug prints the log at debug level with given message
 func (l *Log) Debug(message string) {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -496,7 +549,7 @@ func (l *Log) Debug(message string) {
 
 //DebugWithDetails prints the log at debug level with given fields and message
 func (l *Log) DebugWithDetails(message string, details logutils.Fields) {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -507,7 +560,7 @@ func (l *Log) DebugWithDetails(message string, details logutils.Fields) {
 
 //Debugf prints the log at debug level with given formatted string
 func (l *Log) Debugf(format string, args ...interface{}) {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -624,7 +677,7 @@ func (l *Log) RequestSuccess(w http.ResponseWriter) {
 	w.Write([]byte("Success"))
 }
 
-//RequestSuccess sets the provided success message as the HTTP response, sets standard headers, and stores the message
+//RequestSuccessMessage sets the provided success message as the HTTP response, sets standard headers, and stores the message
 // 	to the log context
 //	Params:
 //		w: The http response writer for the active request
@@ -750,7 +803,7 @@ func (l *Log) SetContext(fieldName string, value interface{}) {
 
 //RequestReceived prints the request context of a log object
 func (l *Log) RequestReceived() {
-	if l == nil || l.logger == nil {
+	if l == nil || l.logger == nil || l.suppress {
 		return
 	}
 
@@ -766,6 +819,15 @@ func (l *Log) RequestComplete() {
 	}
 
 	fields := l.getRequestFields()
+
+	if l.suppress {
+		if l.hasLogged {
+			fields["request"] = l.request
+		} else {
+			return
+		}
+	}
+
 	fields["context"] = l.context
 	l.logger.InfoWithFields("Request Complete", fields)
 }
