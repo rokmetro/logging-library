@@ -109,6 +109,7 @@ const (
 	ActionDeregister MessageActionType = "deregistering"
 	ActionStart      MessageActionType = "starting"
 	ActionCommit     MessageActionType = "committing"
+	ActionRefresh    MessageActionType = "refreshing"
 
 	//Encryption Actions
 	ActionEncrypt MessageActionType = "encrypting"
@@ -140,6 +141,7 @@ const (
 	ActionDelete MessageActionType = "deleting"
 
 	//Storage Actions
+	ActionLoad    MessageActionType = "loading"
 	ActionFind    MessageActionType = "finding"
 	ActionInsert  MessageActionType = "inserting"
 	ActionReplace MessageActionType = "replacing"
